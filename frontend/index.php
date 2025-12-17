@@ -1,13 +1,13 @@
 <?php
 /**
- * PROJECT ONE - LANDING PAGE
- * Frontend: Main landing page
+ * PROJECT ONE - HALAMAN UTAMA
+ * Frontend: Halaman utama landing page
  */
 
-// Backend: Load configuration
+// Backend: Muat konfigurasi
 require_once __DIR__ . '/../backend/config.php';
 
-// Check if user is logged in (for future use)
+// Periksa apakah pengguna sudah masuk (untuk penggunaan di masa depan)
 $is_logged_in = isLoggedIn();
 $user_role = getUserRole();
 ?>

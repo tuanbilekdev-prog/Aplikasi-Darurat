@@ -1,13 +1,13 @@
 /**
- * PROJECT ONE - AUTHENTICATION JAVASCRIPT
- * Form interactions and Google Sign-In
+ * PROJECT ONE - JAVASCRIPT AUTENTIKASI
+ * Interaksi formulir dan Google Sign-In
  */
 
 (function() {
     'use strict';
 
-    // ===== PASSWORD TOGGLE =====
-    // For login page
+    // ===== TOGGLE PASSWORD =====
+    // Untuk halaman masuk
     const passwordToggle = document.getElementById('passwordToggle');
     const passwordInput = document.getElementById('password');
     
@@ -19,7 +19,7 @@
         });
     }
 
-    // For register page - password field
+    // Untuk halaman pendaftaran - field password
     const togglePassword = document.getElementById('togglePassword');
     const registerPassword = document.getElementById('password');
     
@@ -41,7 +41,7 @@
         });
     }
 
-    // For register page - confirm password field
+    // Untuk halaman pendaftaran - field konfirmasi password
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
     const confirmPasswordInput = document.getElementById('confirm_password');
     
@@ -63,7 +63,7 @@
         });
     }
 
-    // ===== FORM VALIDATION =====
+    // ===== VALIDASI FORMULIR =====
     const loginForm = document.getElementById('loginForm');
     
     if (loginForm) {
@@ -71,7 +71,7 @@
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             
-            // Basic client-side validation
+            // Validasi dasar di sisi klien
             if (!username || !password) {
                 e.preventDefault();
                 showError('Username/email dan password harus diisi');
@@ -84,7 +84,7 @@
                 return false;
             }
             
-            // Show loading state
+            // Tampilkan status loading
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.disabled = true;
@@ -98,12 +98,12 @@
     
     if (googleSignInBtn) {
         googleSignInBtn.addEventListener('click', function() {
-            // Redirect to Google OAuth
+            // Arahkan ke Google OAuth
             window.location.href = '../../backend/auth/google_login.php';
         });
     }
 
-    // ===== INPUT FOCUS EFFECTS =====
+    // ===== EFEK FOKUS INPUT =====
     const inputs = document.querySelectorAll('.form-input');
     
     inputs.forEach(input => {
@@ -131,13 +131,13 @@
         }
     });
 
-    // ===== HELPER FUNCTIONS =====
+    // ===== FUNGSI BANTUAN =====
     function showError(message) {
-        // Remove existing error alerts
+        // Hapus alert error yang ada
         const existingAlerts = document.querySelectorAll('.alert-error');
         existingAlerts.forEach(alert => alert.remove());
         
-        // Create new error alert
+        // Buat alert error baru
         const alert = document.createElement('div');
         alert.className = 'alert alert-error';
         alert.innerHTML = `
@@ -152,12 +152,12 @@
         if (form) {
             form.insertBefore(alert, form.firstChild);
             
-            // Scroll to alert
+            // Scroll ke alert
             alert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
 
-    // ===== ENTER KEY SUBMIT =====
+    // ===== KIRIM DENGAN TOMBOL ENTER =====
     document.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && e.target.classList.contains('form-input')) {
             const form = document.getElementById('loginForm');
@@ -167,7 +167,7 @@
         }
     });
 
-    // ===== CONSOLE MESSAGE =====
+    // ===== PESAN KONSOL =====
     console.log('%cProject One - Authentication', 'color: #0A2540; font-size: 16px; font-weight: bold;');
     console.log('%cSecure Login System', 'color: #4DA3FF; font-size: 12px;');
 

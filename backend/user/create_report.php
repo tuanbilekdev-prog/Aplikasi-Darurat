@@ -1,6 +1,6 @@
 <?php
 /**
- * PROJECT ONE - CREATE REPORT PAGE
+ * PROJECT ONE - HALAMAN BUAT LAPORAN
  * Halaman untuk membuat laporan darurat baru
  */
 
@@ -8,13 +8,13 @@ session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../database/connection.php';
 
-// Check authentication
+// Periksa autentikasi
 if (!isLoggedIn()) {
     header('Location: ../auth/login.php');
     exit();
 }
 
-// Check role - must be 'user'
+// Periksa peran - harus 'user'
 if (getUserRole() !== 'user') {
     header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
     exit();
@@ -156,7 +156,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
 
     <script src="../../frontend/assets/js/user-dashboard.js"></script>
     <script>
-        // Character counter
+        // Penghitung karakter
         const description = document.getElementById('description');
         const charCount = document.getElementById('charCount');
         
@@ -166,7 +166,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
             });
         }
 
-        // Get current location
+        // Dapatkan lokasi saat ini
         const getLocationBtn = document.getElementById('getLocationBtn');
         const locationInput = document.getElementById('location');
         

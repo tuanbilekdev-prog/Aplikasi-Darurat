@@ -1,22 +1,22 @@
 <?php
 /**
- * PROJECT ONE - GOOGLE OAUTH LOGIN INITIATOR
- * Initiates Google OAuth 2.0 flow
+ * PROJECT ONE - INISIATOR MASUK GOOGLE OAUTH
+ * Memulai alur Google OAuth 2.0
  */
 
 session_start();
 require_once __DIR__ . '/../config.php';
 
-// Google OAuth Configuration
-// TODO: Replace with your actual Google OAuth credentials
+// Konfigurasi Google OAuth
+// TODO: Ganti dengan kredensial Google OAuth Anda yang sebenarnya
 define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID');
 define('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET');
 define('GOOGLE_REDIRECT_URI', APP_URL . '/backend/auth/google_callback.php');
 
-// Generate state token for CSRF protection
+// Generate token state untuk perlindungan CSRF
 $_SESSION['oauth_state'] = bin2hex(random_bytes(16));
 
-// Google OAuth URL
+// URL Google OAuth
 $auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
     'client_id' => GOOGLE_CLIENT_ID,
     'redirect_uri' => GOOGLE_REDIRECT_URI,
@@ -27,7 +27,7 @@ $auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
     'prompt' => 'select_account'
 ]);
 
-// Redirect to Google
+// Arahkan ke Google
 header('Location: ' . $auth_url);
 exit();
 

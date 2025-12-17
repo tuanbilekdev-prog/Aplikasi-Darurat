@@ -1,12 +1,12 @@
 /**
- * PROJECT ONE - MAIN JAVASCRIPT
- * Frontend interactions and animations
+ * PROJECT ONE - JAVASCRIPT UTAMA
+ * Interaksi frontend dan animasi
  */
 
 (function() {
     'use strict';
 
-    // ===== MOBILE NAVIGATION TOGGLE =====
+    // ===== TOGGLE NAVIGASI MOBILE =====
     const navToggle = document.querySelector('.nav-toggle');
     const navMenu = document.querySelector('.nav-menu');
     
@@ -17,7 +17,7 @@
         });
     }
 
-    // ===== SMOOTH SCROLL FOR ANCHOR LINKS =====
+    // ===== SCROLL HALUS UNTUK TAUTAN ANCHOR =====
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
@@ -33,7 +33,7 @@
                     behavior: 'smooth'
                 });
                 
-                // Close mobile menu if open
+                // Tutup menu mobile jika terbuka
                 if (navMenu) {
                     navMenu.classList.remove('active');
                     navToggle.classList.remove('active');
@@ -42,7 +42,7 @@
         });
     });
 
-    // ===== SCROLL ANIMATIONS =====
+    // ===== ANIMASI SCROLL =====
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -56,7 +56,7 @@
         });
     }, observerOptions);
 
-    // Observe elements for fade-in animation
+    // Amati elemen untuk animasi fade-in
     document.addEventListener('DOMContentLoaded', function() {
         const elementsToAnimate = document.querySelectorAll(
             '.feature-card, .about-text, .about-visual, .contact-card, .cta-card'
@@ -68,7 +68,7 @@
         });
     });
 
-    // ===== NAVBAR SCROLL EFFECT =====
+    // ===== EFEK SCROLL NAVBAR =====
     let lastScroll = 0;
     const navbar = document.querySelector('.navbar');
     
@@ -84,7 +84,7 @@
         lastScroll = currentScroll;
     });
 
-    // ===== PARALLAX EFFECT FOR HERO =====
+    // ===== EFEK PARALLAX UNTUK HERO =====
     window.addEventListener('scroll', function() {
         const scrolled = window.pageYOffset;
         const heroBackground = document.querySelector('.hero-background');
@@ -95,21 +95,21 @@
         }
     });
 
-    // ===== BUTTON HOVER EFFECTS =====
+    // ===== EFEK HOVER TOMBOL =====
     document.querySelectorAll('.btn').forEach(btn => {
         btn.addEventListener('mouseenter', function() {
             this.style.transition = 'all 0.3s ease';
         });
     });
 
-    // ===== CARD HOVER ENHANCEMENT =====
+    // ===== PENINGKATAN HOVER KARTU =====
     document.querySelectorAll('.feature-card, .contact-card').forEach(card => {
         card.addEventListener('mouseenter', function() {
             this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         });
     });
 
-    // ===== FORM VALIDATION (for future forms) =====
+    // ===== VALIDASI FORMULIR (untuk formulir di masa depan) =====
     const validateForm = function(form) {
         const inputs = form.querySelectorAll('input[required], textarea[required]');
         let isValid = true;
@@ -126,12 +126,12 @@
         return isValid;
     };
 
-    // Export for future use
+    // Ekspor untuk penggunaan di masa depan
     window.ProjectOne = {
         validateForm: validateForm
     };
 
-    // ===== CONSOLE MESSAGE =====
+    // ===== PESAN KONSOL =====
     console.log('%cProject One', 'color: #0A2540; font-size: 24px; font-weight: bold;');
     console.log('%cSolusi Cepat untuk Situasi Darurat', 'color: #E63946; font-size: 14px;');
 

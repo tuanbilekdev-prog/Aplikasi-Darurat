@@ -1,20 +1,20 @@
 <?php
 /**
- * PROJECT ONE - HISTORY PAGE
- * Halaman riwayat laporan user
+ * PROJECT ONE - HALAMAN RIWAYAT
+ * Halaman riwayat laporan pengguna
  */
 
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../database/connection.php';
 
-// Check authentication
+// Periksa autentikasi
 if (!isLoggedIn()) {
     header('Location: ../auth/login.php');
     exit();
 }
 
-// Check role - must be 'user'
+// Periksa peran - harus 'user'
 if (getUserRole() !== 'user') {
     header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
     exit();
@@ -25,7 +25,7 @@ $user_id = $_SESSION['user_id'];
 try {
     $db = getDB();
     
-    // Get all user reports
+    // Ambil semua laporan pengguna
     $stmt = $db->prepare("
         SELECT id, title, category, status, description, location, created_at, updated_at
         FROM reports 

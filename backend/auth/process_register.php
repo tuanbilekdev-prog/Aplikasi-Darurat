@@ -1,30 +1,30 @@
 <?php
 /**
- * PROJECT ONE - REGISTRATION PROCESSOR
- * Handles user registration (role automatically set to 'user')
+ * PROJECT ONE - PROSES PENDAFTARAN
+ * Menangani pendaftaran pengguna (peran otomatis disetel ke 'user')
  */
 
 session_start();
 require_once __DIR__ . '/../database/connection.php';
 require_once __DIR__ . '/../config.php';
 
-// Check if request is POST
+// Periksa apakah request adalah POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: register.php');
     exit();
 }
 
-// Sanitize and get input
+// Bersihkan dan ambil input
 $fullname = sanitizeInput($_POST['fullname'] ?? '');
 $username = sanitizeInput($_POST['username'] ?? '');
 $email = sanitizeInput($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirm_password = $_POST['confirm_password'] ?? '';
 
-// Validation
+// Validasi
 $errors = [];
 
-// Validate fullname
+// Validasi nama lengkap
 if (empty($fullname)) {
     $errors[] = 'Nama lengkap wajib diisi';
 } elseif (strlen($fullname) < 3) {
@@ -33,7 +33,7 @@ if (empty($fullname)) {
     $errors[] = 'Nama lengkap maksimal 100 karakter';
 }
 
-// Validate username
+// Validasi username
 if (empty($username)) {
     $errors[] = 'Username wajib diisi';
 } elseif (strlen($username) < 3) {
@@ -44,7 +44,7 @@ if (empty($username)) {
     $errors[] = 'Username hanya boleh mengandung huruf, angka, dan underscore';
 }
 
-// Validate email
+// Validasi email
 if (empty($email)) {
     $errors[] = 'Email wajib diisi';
 } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -53,7 +53,7 @@ if (empty($email)) {
     $errors[] = 'Email maksimal 100 karakter';
 }
 
-// Validate password
+// Validasi password
 if (empty($password)) {
     $errors[] = 'Password wajib diisi';
 } elseif (strlen($password) < 8) {
@@ -62,14 +62,14 @@ if (empty($password)) {
     $errors[] = 'Password terlalu panjang';
 }
 
-// Validate confirm password
+// Validasi konfirmasi password
 if (empty($confirm_password)) {
     $errors[] = 'Konfirmasi password wajib diisi';
 } elseif ($password !== $confirm_password) {
     $errors[] = 'Password dan konfirmasi password tidak cocok';
 }
 
-// If there are validation errors, redirect back
+// Jika ada error validasi, arahkan kembali
 if (!empty($errors)) {
     $error_msg = implode('. ', $errors);
     $params = http_build_query([
@@ -85,7 +85,7 @@ if (!empty($errors)) {
 try {
     $db = getDB();
     
-    // Check if username already exists
+    // Periksa apakah username sudah ada
     $stmt = $db->prepare("SELECT id FROM users WHERE username = :username LIMIT 1");
     $stmt->execute(['username' => $username]);
     if ($stmt->fetch()) {
@@ -99,7 +99,7 @@ try {
         exit();
     }
     
-    // Check if email already exists
+    // Periksa apakah email sudah ada
     $stmt = $db->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
     $stmt->execute(['email' => $email]);
     if ($stmt->fetch()) {
@@ -116,17 +116,17 @@ try {
     // Hash password
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
     
-    // Check if fullname column exists, if not, insert without it
+    // Periksa apakah kolom fullname ada, jika tidak, masukkan tanpa kolom tersebut
     try {
         $columns_check = $db->query("SHOW COLUMNS FROM users LIKE 'fullname'");
         $has_fullname = $columns_check->rowCount() > 0;
     } catch (PDOException $e) {
-        // If query fails, assume column doesn't exist
+        // Jika query gagal, asumsikan kolom tidak ada
         $has_fullname = false;
     }
     
-    // Insert new user with role automatically set to 'user'
-    // IMPORTANT: Role is hardcoded to 'user', never accept from form
+    // Masukkan pengguna baru dengan peran otomatis disetel ke 'user'
+    // PENTING: Peran di-hardcode ke 'user', jangan pernah terima dari form
     if ($has_fullname) {
         $stmt = $db->prepare("
             INSERT INTO users (fullname, username, email, password, role, status, created_at)
@@ -140,7 +140,7 @@ try {
             'password' => $hashed_password
         ]);
     } else {
-        // Fallback: insert without fullname if column doesn't exist
+        // Fallback: masukkan tanpa fullname jika kolom tidak ada
         $stmt = $db->prepare("
             INSERT INTO users (username, email, password, role, status, created_at)
             VALUES (:username, :email, :password, 'user', 'active', NOW())
@@ -153,7 +153,7 @@ try {
         ]);
     }
     
-    // Registration successful
+    // Pendaftaran berhasil
     header('Location: login.php?success=' . urlencode('Registrasi berhasil! Silakan login dengan akun Anda.'));
     exit();
     
@@ -162,9 +162,9 @@ try {
     error_log("Error code: " . $e->getCode());
     error_log("SQL State: " . $e->errorInfo[0]);
     
-    // Check for duplicate entry error
+    // Periksa error entri duplikat
     if ($e->getCode() == 23000 || (isset($e->errorInfo[0]) && $e->errorInfo[0] == '23000')) {
-        // Duplicate entry (username or email)
+        // Entri duplikat (username atau email)
         $params = http_build_query([
             'error' => 'Username atau email sudah terdaftar. Silakan gunakan yang lain.',
             'fullname' => $fullname,
@@ -173,7 +173,7 @@ try {
         ]);
         header('Location: register.php?' . $params);
     } elseif (strpos($e->getMessage(), 'Unknown column') !== false) {
-        // Column doesn't exist - likely fullname column is missing
+        // Kolom tidak ada - kemungkinan kolom fullname hilang
         $params = http_build_query([
             'error' => 'Database belum diupdate. Silakan jalankan migration_add_fullname.sql terlebih dahulu.',
             'fullname' => $fullname,
@@ -182,10 +182,10 @@ try {
         ]);
         header('Location: register.php?' . $params);
     } else {
-        // Other database error - show more specific message in development
+        // Error database lainnya - tampilkan pesan lebih spesifik di development
         $error_msg = 'Terjadi kesalahan sistem. Silakan coba lagi.';
         if (ini_get('display_errors')) {
-            // Only show detailed error in development mode
+            // Hanya tampilkan error detail di mode development
             $error_msg = 'Database error: ' . htmlspecialchars($e->getMessage());
         }
         header('Location: register.php?error=' . urlencode($error_msg));

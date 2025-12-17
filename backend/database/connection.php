@@ -1,10 +1,10 @@
 <?php
 /**
- * PROJECT ONE - DATABASE CONNECTION
- * Secure database connection handler
+ * PROJECT ONE - KONEKSI DATABASE
+ * Penanganan koneksi database yang aman
  */
 
-// Database Configuration - Use constants from config.php if not already defined
+// Konfigurasi Database - Gunakan konstanta dari config.php jika belum didefinisikan
 if (!defined('DB_HOST')) {
     define('DB_HOST', 'localhost');
 }
@@ -26,7 +26,7 @@ class Database {
     private $connection = null;
     
     /**
-     * Get database instance (Singleton pattern)
+     * Dapatkan instance database (pola Singleton)
      */
     public static function getInstance() {
         if (self::$instance === null) {
@@ -36,7 +36,7 @@ class Database {
     }
     
     /**
-     * Private constructor
+     * Konstruktor privat
      */
     private function __construct() {
         try {
@@ -55,26 +55,26 @@ class Database {
     }
     
     /**
-     * Get database connection
+     * Dapatkan koneksi database
      */
     public function getConnection() {
         return $this->connection;
     }
     
     /**
-     * Prevent cloning
+     * Cegah kloning
      */
     private function __clone() {}
     
     /**
-     * Prevent unserialization
+     * Cegah unserialization
      */
     public function __wakeup() {
         throw new Exception("Cannot unserialize singleton");
     }
 }
 
-// Helper function to get database connection
+// Fungsi bantuan untuk mendapatkan koneksi database
 function getDB() {
     return Database::getInstance()->getConnection();
 }

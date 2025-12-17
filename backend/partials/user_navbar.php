@@ -1,5 +1,5 @@
 <?php
-// Get current page to set active nav link
+// Ambil halaman saat ini untuk menetapkan tautan navigasi aktif
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <nav class="user-navbar">

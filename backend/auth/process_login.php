@@ -1,25 +1,25 @@
 <?php
 /**
- * PROJECT ONE - LOGIN PROCESSOR
- * Handles username/email and password authentication
+ * PROJECT ONE - PROSES MASUK
+ * Menangani autentikasi username/email dan password
  */
 
 session_start();
 require_once __DIR__ . '/../database/connection.php';
 require_once __DIR__ . '/../config.php';
 
-// Check if request is POST
+// Periksa apakah request adalah POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: login.php');
     exit();
 }
 
-// Sanitize input
+// Bersihkan input
 $username = sanitizeInput($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
 $remember = isset($_POST['remember']);
 
-// Validate input
+// Validasi input
 if (empty($username) || empty($password)) {
     header('Location: login.php?error=' . urlencode('Username/email dan password harus diisi'));
     exit();
@@ -28,8 +28,7 @@ if (empty($username) || empty($password)) {
 try {
     $db = getDB();
     
-    // Check if username/email exists (check without status first to see if user exists)
-    // Use separate parameters to avoid any potential SQL parameter issues
+    // Periksa apakah username/email ada (gunakan parameter terpisah untuk menghindari masalah parameter SQL)
     $stmt = $db->prepare("
         SELECT id, username, email, password, role, status 
         FROM users 
@@ -47,28 +46,28 @@ try {
         exit();
     }
     
-    // Check if user is active
+    // Periksa apakah pengguna aktif
     if ($user['status'] !== 'active') {
         header('Location: login.php?error=' . urlencode('Akun Anda tidak aktif. Silakan hubungi administrator.'));
         exit();
     }
     
-    // Verify password
-    // Check if password field is empty or null
+    // Verifikasi password
+    // Periksa apakah field password kosong atau null
     if (empty($user['password'])) {
         error_log("Login error: Password field is empty for user ID: " . $user['id']);
         header('Location: login.php?error=' . urlencode('Terjadi kesalahan dengan akun Anda. Silakan hubungi administrator.'));
         exit();
     }
     
-    // Debug: Log password verification attempt (remove in production)
+    // Debug: Catat upaya verifikasi password (hapus di production)
     if (ini_get('display_errors')) {
         error_log("Login attempt - User: " . $username . ", Password length: " . strlen($password));
         error_log("Stored hash: " . substr($user['password'], 0, 20) . "...");
     }
     
     if (!password_verify($password, $user['password'])) {
-        // Additional debug info
+        // Info debug tambahan
         if (ini_get('display_errors')) {
             error_log("Password verification FAILED for user: " . $username);
         }
@@ -76,7 +75,7 @@ try {
         exit();
     }
     
-    // Set session
+    // Setel sesi
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['email'] = $user['email'];
@@ -84,12 +83,12 @@ try {
     $_SESSION['logged_in'] = true;
     $_SESSION['login_time'] = time();
     
-    // Remember me functionality
+    // Fungsi ingat saya
     if ($remember) {
         $token = bin2hex(random_bytes(32));
-        $expiry = time() + (30 * 24 * 60 * 60); // 30 days
+        $expiry = time() + (30 * 24 * 60 * 60); // 30 hari
         
-        // Store remember token in database
+        // Simpan token ingat saya di database
         $stmt = $db->prepare("
             UPDATE users 
             SET remember_token = :token, remember_expiry = :expiry 
@@ -104,11 +103,11 @@ try {
         setcookie('remember_token', $token, $expiry, '/', '', true, true);
     }
     
-    // Update last login
+    // Perbarui waktu masuk terakhir
     $stmt = $db->prepare("UPDATE users SET last_login = NOW() WHERE id = :id");
     $stmt->execute(['id' => $user['id']]);
     
-    // Redirect based on role
+    // Arahkan berdasarkan peran
     if ($user['role'] === 'admin') {
         header('Location: ../admin/dashboard.php');
     } else {

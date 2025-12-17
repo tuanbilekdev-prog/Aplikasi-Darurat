@@ -1,20 +1,20 @@
 <?php
 /**
- * PROJECT ONE - PROFILE PAGE
- * Halaman profil user
+ * PROJECT ONE - HALAMAN PROFIL
+ * Halaman profil pengguna
  */
 
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../database/connection.php';
 
-// Check authentication
+// Periksa autentikasi
 if (!isLoggedIn()) {
     header('Location: ../auth/login.php');
     exit();
 }
 
-// Check role - must be 'user'
+// Periksa peran - harus 'user'
 if (getUserRole() !== 'user') {
     header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
     exit();
