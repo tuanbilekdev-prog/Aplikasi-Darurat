@@ -1,41 +1,41 @@
 <?php
 /**
- * PROJECT ONE - CONFIGURATION FILE
- * Backend Configuration & Settings
+ * PROJECT ONE - FILE KONFIGURASI
+ * Pengaturan dan konfigurasi backend
  */
 
-// Start session if not already started
+// Mulai sesi jika belum dimulai
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Application Configuration
+// Konfigurasi Aplikasi
 define('APP_NAME', 'Project One');
 define('APP_VERSION', '1.0.0');
 define('APP_URL', 'http://localhost/Aplikasi-Darurat');
 define('APP_PATH', dirname(__DIR__));
 
-// Database Configuration (for future use)
+// Konfigurasi Database
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'project_one_db');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
-// Security Configuration
-define('SESSION_LIFETIME', 3600); // 1 hour
+// Konfigurasi Keamanan
+define('SESSION_LIFETIME', 3600); // 1 jam
 define('PASSWORD_MIN_LENGTH', 8);
 define('MAX_LOGIN_ATTEMPTS', 5);
-define('LOGIN_LOCKOUT_TIME', 900); // 15 minutes
+define('LOGIN_LOCKOUT_TIME', 900); // 15 menit
 
-// Timezone
+// Zona Waktu
 date_default_timezone_set('Asia/Jakarta');
 
-// Error Reporting (set to 0 in production)
+// Pelaporan Error (set ke 0 di production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Helper Functions
+// Fungsi Bantuan
 function isLoggedIn() {
     return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }

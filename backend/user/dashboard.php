@@ -1,26 +1,26 @@
 <?php
 /**
- * PROJECT ONE - USER DASHBOARD
- * Dashboard untuk user (masyarakat)
+ * PROJECT ONE - DASHBOARD PENGGUNA
+ * Dashboard untuk pengguna (masyarakat)
  */
 
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../database/connection.php';
 
-// Check authentication
+// Periksa autentikasi
 if (!isLoggedIn()) {
     header('Location: ../auth/login.php');
     exit();
 }
 
-// Check role - must be 'user'
+// Periksa peran - harus 'user'
 if (getUserRole() !== 'user') {
     header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
     exit();
 }
 
-// Get user data
+// Ambil data pengguna
 $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'] ?? 'Pengguna';
 $email = $_SESSION['email'] ?? '';
@@ -30,7 +30,7 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
 try {
     $db = getDB();
     
-    // Get user's recent reports (last 3)
+    // Ambil laporan terbaru pengguna (3 terakhir)
     $stmt = $db->prepare("
         SELECT id, title, status, created_at 
         FROM reports 
@@ -41,12 +41,12 @@ try {
     $stmt->execute(['user_id' => $user_id]);
     $recent_reports = $stmt->fetchAll();
     
-    // Get total reports count
+    // Ambil jumlah total laporan
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM reports WHERE user_id = :user_id");
     $stmt->execute(['user_id' => $user_id]);
     $total_reports = $stmt->fetch()['total'] ?? 0;
     
-    // Get pending reports count
+    // Ambil jumlah laporan yang menunggu
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM reports WHERE user_id = :user_id AND status = 'pending'");
     $stmt->execute(['user_id' => $user_id]);
     $pending_reports = $stmt->fetch()['total'] ?? 0;

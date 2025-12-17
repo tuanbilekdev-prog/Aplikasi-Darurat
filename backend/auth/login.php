@@ -1,12 +1,12 @@
 <?php
 /**
- * PROJECT ONE - LOGIN PAGE
- * Modern login page with Google OAuth support
+ * PROJECT ONE - HALAMAN MASUK
+ * Halaman masuk modern dengan dukungan Google OAuth
  */
 
 session_start();
 
-// Redirect if already logged in
+// Jika sudah masuk, arahkan ke dashboard
 if (isset($_SESSION['user_id'])) {
     $role = $_SESSION['user_role'] ?? 'user';
     if ($role === 'admin') {
@@ -17,7 +17,7 @@ if (isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Get error message if any
+// Ambil pesan error jika ada
 $error = isset($_GET['error']) ? $_GET['error'] : '';
 $success = isset($_GET['success']) ? $_GET['success'] : '';
 ?>
@@ -188,7 +188,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
     <script src="../../frontend/assets/js/auth.js"></script>
     
     <script>
-        // Google Sign-In button handler
+        // Penanganan tombol Google Sign-In
         document.getElementById('googleSignIn').addEventListener('click', function() {
             window.location.href = 'google_login.php';
         });

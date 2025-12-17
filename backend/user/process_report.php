@@ -1,20 +1,20 @@
 <?php
 /**
- * PROJECT ONE - PROCESS REPORT
- * Handle report submission
+ * PROJECT ONE - PROSES LAPORAN
+ * Menangani pengiriman laporan
  */
 
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../database/connection.php';
 
-// Check authentication
+// Periksa autentikasi
 if (!isLoggedIn()) {
     header('Location: ../auth/login.php');
     exit();
 }
 
-// Check role - must be 'user'
+// Periksa peran - harus 'user'
 if (getUserRole() !== 'user') {
     header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
     exit();
@@ -22,20 +22,20 @@ if (getUserRole() !== 'user') {
 
 $user_id = $_SESSION['user_id'];
 
-// Check if form is submitted
+// Periksa apakah formulir dikirim
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: create_report.php');
     exit();
 }
 
-// Get and sanitize form data
+// Ambil dan bersihkan data formulir
 $title = sanitizeInput($_POST['title'] ?? '');
 $category = sanitizeInput($_POST['category'] ?? '');
 $description = sanitizeInput($_POST['description'] ?? '');
 $location = sanitizeInput($_POST['location'] ?? '');
 $urgent = isset($_POST['urgent']) ? 1 : 0;
 
-// Validation
+// Validasi
 $errors = [];
 
 if (empty($title)) {
@@ -56,7 +56,7 @@ if (empty($location)) {
     $errors[] = 'Lokasi wajib diisi';
 }
 
-// If there are errors, redirect back with error message
+// Jika ada error, arahkan kembali dengan pesan error
 if (!empty($errors)) {
     $error_msg = implode(', ', $errors);
     header('Location: create_report.php?error=' . urlencode($error_msg));
@@ -66,7 +66,7 @@ if (!empty($errors)) {
 try {
     $db = getDB();
     
-    // Insert report into database
+    // Masukkan laporan ke database
     $stmt = $db->prepare("
         INSERT INTO reports (user_id, title, category, description, location, urgent, status, created_at)
         VALUES (:user_id, :title, :category, :description, :location, :urgent, 'pending', NOW())
@@ -81,7 +81,7 @@ try {
         'urgent' => $urgent
     ]);
     
-    // Success - redirect to dashboard
+    // Berhasil - arahkan ke dashboard
     header('Location: dashboard.php?success=' . urlencode('Laporan berhasil dikirim. Tim kami akan segera merespons.'));
     exit();
     

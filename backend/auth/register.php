@@ -1,13 +1,13 @@
 <?php
 /**
- * PROJECT ONE - REGISTRATION PAGE
- * Halaman registrasi untuk user (masyarakat)
+ * PROJECT ONE - HALAMAN PENDAFTARAN
+ * Halaman pendaftaran untuk pengguna (masyarakat)
  */
 
 session_start();
 require_once __DIR__ . '/../config.php';
 
-// If already logged in, redirect to dashboard
+// Jika sudah masuk, arahkan ke dashboard
 if (isLoggedIn()) {
     $role = getUserRole();
     if ($role === 'admin') {
@@ -215,7 +215,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
 
                     <button type="submit" class="btn btn-primary btn-block">
                         <span>Daftar Akun</span>
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
@@ -231,7 +231,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
     <!-- JavaScript -->
     <script src="../../frontend/assets/js/auth.js"></script>
     <script>
-        // Password confirmation validation
+        // Validasi konfirmasi kata sandi
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirm_password');
         const registerForm = document.getElementById('registerForm');
@@ -247,7 +247,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
         password.addEventListener('input', validatePasswordMatch);
         confirmPassword.addEventListener('input', validatePasswordMatch);
 
-        // Form submission validation
+        // Validasi pengiriman formulir
         registerForm.addEventListener('submit', function(e) {
             if (password.value !== confirmPassword.value) {
                 e.preventDefault();

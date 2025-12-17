@@ -1,13 +1,13 @@
 <?php
 /**
- * PROJECT ONE - LOGOUT HANDLER
- * Handles user logout and session cleanup
+ * PROJECT ONE - PENANGANAN KELUAR
+ * Menangani keluar pengguna dan pembersihan sesi
  */
 
 session_start();
 require_once __DIR__ . '/../database/connection.php';
 
-// Clear remember token if exists
+// Hapus token ingat saya jika ada
 if (isset($_COOKIE['remember_token'])) {
     try {
         $db = getDB();
@@ -20,7 +20,7 @@ if (isset($_COOKIE['remember_token'])) {
     setcookie('remember_token', '', time() - 3600, '/', '', true, true);
 }
 
-// Destroy session
+// Hancurkan sesi
 $_SESSION = array();
 
 if (isset($_COOKIE[session_name()])) {
@@ -29,7 +29,7 @@ if (isset($_COOKIE[session_name()])) {
 
 session_destroy();
 
-// Redirect to login
+// Arahkan ke halaman masuk
 header('Location: login.php?success=' . urlencode('Anda telah berhasil keluar'));
 exit();
 

@@ -1,19 +1,19 @@
 <?php
 /**
- * PROJECT ONE - GOOGLE OAUTH CALLBACK
- * Handles Google OAuth callback and user authentication
+ * PROJECT ONE - CALLBACK GOOGLE OAUTH
+ * Menangani callback Google OAuth dan autentikasi pengguna
  */
 
 session_start();
 require_once __DIR__ . '/../database/connection.php';
 require_once __DIR__ . '/../config.php';
 
-// Google OAuth Configuration
+// Konfigurasi Google OAuth
 define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID');
 define('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET');
 define('GOOGLE_REDIRECT_URI', APP_URL . '/backend/auth/google_callback.php');
 
-// Verify state token (CSRF protection)
+// Verifikasi token state (perlindungan CSRF)
 if (!isset($_GET['state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
     header('Location: login.php?error=' . urlencode('Invalid state token'));
     exit();
@@ -21,13 +21,13 @@ if (!isset($_GET['state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
 
 unset($_SESSION['oauth_state']);
 
-// Check for error from Google
+// Periksa error dari Google
 if (isset($_GET['error'])) {
     header('Location: login.php?error=' . urlencode('Google login dibatalkan'));
     exit();
 }
 
-// Get authorization code
+// Ambil kode otorisasi
 if (!isset($_GET['code'])) {
     header('Location: login.php?error=' . urlencode('Authorization code tidak ditemukan'));
     exit();
@@ -36,7 +36,7 @@ if (!isset($_GET['code'])) {
 $code = $_GET['code'];
 
 try {
-    // Exchange code for access token
+    // Tukar kode untuk access token
     $token_url = 'https://oauth2.googleapis.com/token';
     $token_data = [
         'code' => $code,
@@ -69,7 +69,7 @@ try {
     
     $access_token = $token_response['access_token'];
     
-    // Get user info from Google
+    // Ambil info pengguna dari Google
     $userinfo_url = 'https://www.googleapis.com/oauth2/v2/userinfo?access_token=' . $access_token;
     
     $ch = curl_init();
@@ -96,20 +96,20 @@ try {
     $google_id = $userinfo['id'] ?? '';
     $picture = $userinfo['picture'] ?? '';
     
-    // Check if user exists
+    // Periksa apakah pengguna ada
     $db = getDB();
     $stmt = $db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch();
     
     if ($user) {
-        // User exists, update Google ID if needed
+        // Pengguna ada, perbarui Google ID jika diperlukan
         if (empty($user['google_id'])) {
             $stmt = $db->prepare("UPDATE users SET google_id = :google_id WHERE id = :id");
             $stmt->execute(['google_id' => $google_id, 'id' => $user['id']]);
         }
         
-        // Set session
+        // Setel sesi
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];
@@ -117,16 +117,16 @@ try {
         $_SESSION['logged_in'] = true;
         $_SESSION['login_time'] = time();
         
-        // Update last login
+        // Perbarui waktu masuk terakhir
         $stmt = $db->prepare("UPDATE users SET last_login = NOW() WHERE id = :id");
         $stmt->execute(['id' => $user['id']]);
         
     } else {
-        // Auto-register new user
+        // Auto-daftarkan pengguna baru
         $username = strtolower(str_replace(' ', '', $name));
         $username = preg_replace('/[^a-z0-9]/', '', $username);
         
-        // Ensure username is unique
+        // Pastikan username unik
         $original_username = $username;
         $counter = 1;
         while (true) {
@@ -139,7 +139,7 @@ try {
             $counter++;
         }
         
-        // Insert new user
+        // Masukkan pengguna baru
         $stmt = $db->prepare("
             INSERT INTO users (username, email, password, role, google_id, status, created_at)
             VALUES (:username, :email, :password, 'user', :google_id, 'active', NOW())
@@ -147,13 +147,13 @@ try {
         $stmt->execute([
             'username' => $username,
             'email' => $email,
-            'password' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT), // Random password
+            'password' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT), // Password acak
             'google_id' => $google_id
         ]);
         
         $user_id = $db->lastInsertId();
         
-        // Set session
+        // Setel sesi
         $_SESSION['user_id'] = $user_id;
         $_SESSION['username'] = $username;
         $_SESSION['email'] = $email;
@@ -162,7 +162,7 @@ try {
         $_SESSION['login_time'] = time();
     }
     
-    // Redirect based on role
+    // Arahkan berdasarkan peran
     $role = $_SESSION['user_role'];
     if ($role === 'admin') {
         header('Location: ../admin/dashboard.php');
