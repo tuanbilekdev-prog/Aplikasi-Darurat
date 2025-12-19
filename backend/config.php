@@ -17,7 +17,8 @@ define('APP_PATH', dirname(__DIR__));
 
 // Konfigurasi Database
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'project_one_db');
+define('DB_NAME', 'user_db');  // Database untuk USER (default)
+define('DB_ADMIN_NAME', 'admin_db');  // Database untuk ADMIN
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');

@@ -26,12 +26,17 @@ if (empty($username) || empty($password)) {
 }
 
 try {
-    $db = getDB();
+    // Cek admin dulu di admin_db
+    $admin_db = getAdminDB();
+    $user_db = getDB();
     
-    // Periksa apakah username/email ada (gunakan parameter terpisah untuk menghindari masalah parameter SQL)
-    $stmt = $db->prepare("
-        SELECT id, username, email, password, role, status 
-        FROM users 
+    $user = null;
+    $user_type = null; // 'admin' atau 'user'
+    
+    // Cek di tabel admin (admin_db) terlebih dahulu
+    $stmt = $admin_db->prepare("
+        SELECT id, username, email, password, role, status, fullname, instansi_id
+        FROM admin 
         WHERE username = :username OR email = :email
         LIMIT 1
     ");
@@ -39,7 +44,31 @@ try {
         'username' => $username,
         'email' => $username
     ]);
-    $user = $stmt->fetch();
+    $admin = $stmt->fetch();
+    
+    if ($admin) {
+        $user = $admin;
+        $user_type = 'admin';
+    } else {
+        // Jika tidak ada di admin, cek di user_db
+        $stmt = $user_db->prepare("
+            SELECT id, username, email, password, status, fullname
+            FROM users 
+            WHERE username = :username OR email = :email
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'username' => $username,
+            'email' => $username
+        ]);
+        $user_data = $stmt->fetch();
+        
+        if ($user_data) {
+            $user = $user_data;
+            $user['role'] = 'user'; // Set default role untuk user
+            $user_type = 'user';
+        }
+    }
     
     if (!$user) {
         header('Location: login.php?error=' . urlencode('Username/email atau password salah'));
@@ -83,14 +112,26 @@ try {
     $_SESSION['logged_in'] = true;
     $_SESSION['login_time'] = time();
     
+    // Simpan informasi tambahan berdasarkan tipe user
+    if ($user_type === 'admin') {
+        $_SESSION['admin_instansi_id'] = $user['instansi_id'] ?? null;
+        $_SESSION['fullname'] = $user['fullname'] ?? '';
+        $db_for_update = $admin_db;
+        $table_name = 'admin';
+    } else {
+        $_SESSION['fullname'] = $user['fullname'] ?? '';
+        $db_for_update = $user_db;
+        $table_name = 'users';
+    }
+    
     // Fungsi ingat saya
     if ($remember) {
         $token = bin2hex(random_bytes(32));
         $expiry = time() + (30 * 24 * 60 * 60); // 30 hari
         
-        // Simpan token ingat saya di database
-        $stmt = $db->prepare("
-            UPDATE users 
+        // Simpan token ingat saya di database yang sesuai
+        $stmt = $db_for_update->prepare("
+            UPDATE {$table_name} 
             SET remember_token = :token, remember_expiry = :expiry 
             WHERE id = :id
         ");
@@ -104,11 +145,12 @@ try {
     }
     
     // Perbarui waktu masuk terakhir
-    $stmt = $db->prepare("UPDATE users SET last_login = NOW() WHERE id = :id");
+    $stmt = $db_for_update->prepare("UPDATE {$table_name} SET last_login = NOW() WHERE id = :id");
     $stmt->execute(['id' => $user['id']]);
     
     // Arahkan berdasarkan peran
-    if ($user['role'] === 'admin') {
+    // Admin bisa memiliki role: 'super_admin', 'admin', atau 'operator'
+    if (in_array($user['role'], ['super_admin', 'admin', 'operator'])) {
         header('Location: ../admin/dashboard.php');
     } else {
         header('Location: ../user/dashboard.php');
