@@ -1,12 +1,18 @@
 -- ============================================
--- PROJECT ONE - MASTER REFACTOR SCRIPT
--- Script utama untuk menjalankan refactor database lengkap
+-- PROJECT ONE - SINGLE DATABASE ARCHITECTURE
+-- Script untuk membuat database tunggal emergency_system
 -- ============================================
 -- 
 -- PERINGATAN PENTING:
--- ⚠️  Script ini akan MENGHAPUS SEMUA DATA LAMA
+-- ⚠️  Script ini akan MENGHAPUS SEMUA DATABASE LAMA
 -- ⚠️  Pastikan Anda sudah backup data penting
 -- ⚠️  Jangan jalankan di production tanpa persiapan
+-- 
+-- ARSITEKTUR:
+-- - SATU DATABASE: emergency_system
+-- - Tabel ADMIN: instansi, alamat_instansi, admin, log_admin
+-- - Tabel USER: users, reports, report_media
+-- - ADMIN dan USER TERPISAH dalam tabel berbeda
 -- 
 -- CARA PENGGUNAAN:
 -- 1. Backup database lama terlebih dahulu
@@ -24,25 +30,25 @@ SET time_zone = "+00:00";
 -- ============================================
 SET FOREIGN_KEY_CHECKS = 0;
 DROP DATABASE IF EXISTS project_one_db;
+DROP DATABASE IF EXISTS admin_db;
+DROP DATABASE IF EXISTS user_db;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================
--- STEP 2: BUAT DATABASE BARU
+-- STEP 2: BUAT DATABASE TUNGGAL
 -- ============================================
-CREATE DATABASE IF NOT EXISTS admin_db
+CREATE DATABASE IF NOT EXISTS emergency_system
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
-CREATE DATABASE IF NOT EXISTS user_db
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
+USE emergency_system;
 
 -- ============================================
--- STEP 3: BUAT TABEL ADMIN_DB
+-- STEP 3: BUAT TABEL ADMIN
 -- ============================================
-USE admin_db;
 
 -- Tabel: instansi
+-- Menyimpan data instansi/organisasi (Rumah Sakit, Polisi, Pemadam, dll)
 CREATE TABLE IF NOT EXISTS instansi (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(200) NOT NULL COMMENT 'Nama instansi/organisasi',
@@ -58,6 +64,7 @@ CREATE TABLE IF NOT EXISTS instansi (
 COMMENT='Tabel data instansi/organisasi';
 
 -- Tabel: alamat_instansi
+-- Menyimpan alamat lengkap instansi (1:1 dengan instansi)
 CREATE TABLE IF NOT EXISTS alamat_instansi (
     id INT AUTO_INCREMENT PRIMARY KEY,
     instansi_id INT NOT NULL UNIQUE COMMENT 'ID instansi (1:1 relationship)',
@@ -77,6 +84,7 @@ CREATE TABLE IF NOT EXISTS alamat_instansi (
 COMMENT='Tabel alamat instansi (1:1 dengan instansi)';
 
 -- Tabel: admin
+-- Menyimpan data admin yang terhubung ke instansi
 CREATE TABLE IF NOT EXISTS admin (
     id INT AUTO_INCREMENT PRIMARY KEY,
     instansi_id INT NOT NULL COMMENT 'ID instansi tempat admin bekerja',
@@ -99,6 +107,7 @@ CREATE TABLE IF NOT EXISTS admin (
 COMMENT='Tabel data admin yang terhubung ke instansi';
 
 -- Tabel: log_admin (opsional)
+-- Log aktivitas admin untuk audit trail
 CREATE TABLE IF NOT EXISTS log_admin (
     id INT AUTO_INCREMENT PRIMARY KEY,
     admin_id INT NULL COMMENT 'ID admin yang melakukan aksi (NULL jika admin sudah dihapus)',
@@ -115,11 +124,11 @@ CREATE TABLE IF NOT EXISTS log_admin (
 COMMENT='Log aktivitas admin untuk audit trail (opsional)';
 
 -- ============================================
--- STEP 4: BUAT TABEL USER_DB
+-- STEP 4: BUAT TABEL USER
 -- ============================================
-USE user_db;
 
 -- Tabel: users
+-- Menyimpan data pengguna (masyarakat) yang melaporkan kejadian
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL COMMENT 'Username untuk login',
@@ -143,6 +152,7 @@ CREATE TABLE IF NOT EXISTS users (
 COMMENT='Tabel data pengguna (masyarakat)';
 
 -- Tabel: reports
+-- Menyimpan laporan darurat dari pengguna
 CREATE TABLE IF NOT EXISTS reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL COMMENT 'ID pengguna yang membuat laporan',
@@ -171,6 +181,7 @@ CREATE TABLE IF NOT EXISTS reports (
 COMMENT='Tabel laporan darurat dari pengguna';
 
 -- Tabel: report_media (opsional)
+-- Menyimpan media/foto yang dilampirkan pada laporan
 CREATE TABLE IF NOT EXISTS report_media (
     id INT AUTO_INCREMENT PRIMARY KEY,
     report_id INT NOT NULL COMMENT 'ID laporan yang memiliki media ini',
@@ -186,29 +197,24 @@ CREATE TABLE IF NOT EXISTS report_media (
 COMMENT='Tabel media/foto yang dilampirkan pada laporan (opsional)';
 
 -- ============================================
--- VERIFIKASI: Cek hasil refactor
+-- VERIFIKASI: Cek hasil pembuatan database
 -- ============================================
 -- Uncomment query di bawah untuk verifikasi
 
--- SELECT 'admin_db Tables:' AS info;
+-- SELECT 'emergency_system Tables:' AS info;
 -- SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
--- WHERE TABLE_SCHEMA = 'admin_db' 
+-- WHERE TABLE_SCHEMA = 'emergency_system' 
 -- ORDER BY TABLE_NAME;
 -- 
--- SELECT 'user_db Tables:' AS info;
--- SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
--- WHERE TABLE_SCHEMA = 'user_db' 
--- ORDER BY TABLE_NAME;
--- 
--- SELECT 'Old database removed:' AS info;
+-- SELECT 'Old databases removed:' AS info;
 -- SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA 
--- WHERE SCHEMA_NAME = 'project_one_db';
+-- WHERE SCHEMA_NAME IN ('project_one_db', 'admin_db', 'user_db');
 -- -- Hasil harus kosong jika berhasil
 
 -- ============================================
 -- SELESAI
 -- ============================================
--- Database refactor selesai!
+-- Database emergency_system berhasil dibuat!
 -- Langkah selanjutnya:
 -- 1. Update konfigurasi PHP (config.php, connection.php)
 -- 2. Test koneksi ke database baru

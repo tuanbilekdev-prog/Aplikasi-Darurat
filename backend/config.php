@@ -16,9 +16,10 @@ define('APP_URL', 'http://localhost/Aplikasi-Darurat');
 define('APP_PATH', dirname(__DIR__));
 
 // Konfigurasi Database
+// ARSITEKTUR: Single Database (emergency_system)
+// Admin dan User dipisahkan menggunakan tabel terpisah, bukan database terpisah
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'user_db');  // Database untuk USER (default)
-define('DB_ADMIN_NAME', 'admin_db');  // Database untuk ADMIN
+define('DB_NAME', 'emergency_system');  // Database tunggal untuk semua data
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');

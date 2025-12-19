@@ -30,8 +30,8 @@ if (!$report_id) {
 $success = isset($_GET['success']) ? $_GET['success'] : '';
 $error = isset($_GET['error']) ? $_GET['error'] : '';
 
-// Koneksi database
-$user_db = getDB();
+// Koneksi database (single database: emergency_system)
+$db = getDB();
 
 // Ambil data laporan
 $report = null;
@@ -39,7 +39,7 @@ $report_media = [];
 
 try {
     // Query detail laporan dengan data user
-    $stmt = $user_db->prepare("
+    $stmt = $db->prepare("
         SELECT r.*, u.username, u.fullname as user_fullname, u.email as user_email, u.phone as user_phone
         FROM reports r
         LEFT JOIN users u ON r.user_id = u.id
@@ -55,7 +55,7 @@ try {
     }
     
     // Query media laporan (jika ada)
-    $stmt = $user_db->prepare("
+    $stmt = $db->prepare("
         SELECT * FROM report_media 
         WHERE report_id = :report_id 
         ORDER BY created_at ASC

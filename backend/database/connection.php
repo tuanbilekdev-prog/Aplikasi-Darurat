@@ -2,7 +2,10 @@
 /**
  * PROJECT ONE - KONEKSI DATABASE
  * Penanganan koneksi database yang aman
- * UPDATE: Sekarang mendukung multiple database (user_db & admin_db)
+ * 
+ * ARSITEKTUR: Single Database (emergency_system)
+ * - Semua tabel (admin & user) berada dalam satu database
+ * - Admin dan User dipisahkan menggunakan tabel terpisah
  */
 
 // Konfigurasi Database - Gunakan konstanta dari config.php jika belum didefinisikan
@@ -19,49 +22,34 @@ if (!defined('DB_CHARSET')) {
     define('DB_CHARSET', 'utf8mb4');
 }
 
-// Nama database (default: user_db untuk backward compatibility)
+// Nama database (default: emergency_system)
 if (!defined('DB_NAME')) {
-    define('DB_NAME', 'user_db');
-}
-if (!defined('DB_ADMIN_NAME')) {
-    define('DB_ADMIN_NAME', 'admin_db');
+    define('DB_NAME', 'emergency_system');
 }
 
 class Database {
-    private static $instances = [];
+    private static $instance = null;
     private $connection = null;
-    private $database = null;
     
     /**
-     * Dapatkan instance database untuk database tertentu
+     * Dapatkan instance database (Singleton Pattern)
      * 
-     * @param string $db_name Nama database ('user_db' atau 'admin_db')
      * @return Database Instance database
      */
-    public static function getInstance($db_name = 'user_db') {
-        // Validasi nama database
-        if (!in_array($db_name, ['user_db', 'admin_db'])) {
-            throw new Exception("Database name must be 'user_db' or 'admin_db'");
+    public static function getInstance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
         }
         
-        // Buat instance jika belum ada
-        if (!isset(self::$instances[$db_name])) {
-            self::$instances[$db_name] = new self($db_name);
-        }
-        
-        return self::$instances[$db_name];
+        return self::$instance;
     }
     
     /**
      * Konstruktor privat
-     * 
-     * @param string $db_name Nama database
      */
-    private function __construct($db_name) {
-        $this->database = $db_name;
-        
+    private function __construct() {
         try {
-            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . $db_name . ";charset=" . DB_CHARSET;
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -70,7 +58,7 @@ class Database {
             
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            error_log("Database connection failed ({$db_name}): " . $e->getMessage());
+            error_log("Database connection failed: " . $e->getMessage());
             die("Database connection failed. Please contact administrator.");
         }
     }
@@ -82,15 +70,6 @@ class Database {
      */
     public function getConnection() {
         return $this->connection;
-    }
-    
-    /**
-     * Dapatkan nama database
-     * 
-     * @return string Nama database
-     */
-    public function getDatabaseName() {
-        return $this->database;
     }
     
     /**
@@ -111,32 +90,22 @@ class Database {
 // ============================================
 
 /**
- * Dapatkan koneksi database USER (default)
+ * Dapatkan koneksi database (untuk semua tabel)
  * 
- * @return PDO Koneksi ke user_db
+ * @return PDO Koneksi ke emergency_system
  */
 function getDB() {
-    return Database::getInstance('user_db')->getConnection();
+    return Database::getInstance()->getConnection();
 }
 
 /**
- * Dapatkan koneksi database ADMIN
+ * Alias untuk getDB() - untuk backward compatibility
+ * Semua query admin dan user menggunakan database yang sama
  * 
- * @return PDO Koneksi ke admin_db
+ * @return PDO Koneksi ke emergency_system
  */
 function getAdminDB() {
-    return Database::getInstance('admin_db')->getConnection();
-}
-
-/**
- * Dapatkan koneksi database berdasarkan nama
- * 
- * @param string $db_name Nama database ('user_db' atau 'admin_db')
- * @return PDO Koneksi database
- */
-function getDBByName($db_name) {
-    return Database::getInstance($db_name)->getConnection();
+    return Database::getInstance()->getConnection();
 }
 
 ?>
-
