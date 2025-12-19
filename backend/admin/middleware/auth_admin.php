@@ -100,10 +100,10 @@ function getAdminData() {
     }
     
     try {
-        $admin_db = getAdminDB();
+        $db = getDB(); // Single database: emergency_system
         $admin_id = getAdminId();
         
-        $stmt = $admin_db->prepare("
+        $stmt = $db->prepare("
             SELECT a.*, i.nama as instansi_nama, i.kode as instansi_kode
             FROM admin a
             LEFT JOIN instansi i ON a.instansi_id = i.id
@@ -150,12 +150,12 @@ function logAdminAction($action, $description = '') {
     }
     
     try {
-        $admin_db = getAdminDB();
+        $db = getDB(); // Single database: emergency_system
         $admin_id = getAdminId();
         $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
         $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
         
-        $stmt = $admin_db->prepare("
+        $stmt = $db->prepare("
             INSERT INTO log_admin (admin_id, action, description, ip_address, user_agent)
             VALUES (:admin_id, :action, :description, :ip_address, :user_agent)
         ");

@@ -26,15 +26,14 @@ if (empty($username) || empty($password)) {
 }
 
 try {
-    // Cek admin dulu di admin_db
-    $admin_db = getAdminDB();
-    $user_db = getDB();
+    // Single database: emergency_system
+    $db = getDB();
     
     $user = null;
     $user_type = null; // 'admin' atau 'user'
     
-    // Cek di tabel admin (admin_db) terlebih dahulu
-    $stmt = $admin_db->prepare("
+    // Cek di tabel admin terlebih dahulu
+    $stmt = $db->prepare("
         SELECT id, username, email, password, role, status, fullname, instansi_id
         FROM admin 
         WHERE username = :username OR email = :email
@@ -50,8 +49,8 @@ try {
         $user = $admin;
         $user_type = 'admin';
     } else {
-        // Jika tidak ada di admin, cek di user_db
-        $stmt = $user_db->prepare("
+        // Jika tidak ada di admin, cek di tabel users
+        $stmt = $db->prepare("
             SELECT id, username, email, password, status, fullname
             FROM users 
             WHERE username = :username OR email = :email
@@ -116,11 +115,9 @@ try {
     if ($user_type === 'admin') {
         $_SESSION['admin_instansi_id'] = $user['instansi_id'] ?? null;
         $_SESSION['fullname'] = $user['fullname'] ?? '';
-        $db_for_update = $admin_db;
         $table_name = 'admin';
     } else {
         $_SESSION['fullname'] = $user['fullname'] ?? '';
-        $db_for_update = $user_db;
         $table_name = 'users';
     }
     
@@ -129,8 +126,8 @@ try {
         $token = bin2hex(random_bytes(32));
         $expiry = time() + (30 * 24 * 60 * 60); // 30 hari
         
-        // Simpan token ingat saya di database yang sesuai
-        $stmt = $db_for_update->prepare("
+        // Simpan token ingat saya di database
+        $stmt = $db->prepare("
             UPDATE {$table_name} 
             SET remember_token = :token, remember_expiry = :expiry 
             WHERE id = :id
@@ -145,7 +142,7 @@ try {
     }
     
     // Perbarui waktu masuk terakhir
-    $stmt = $db_for_update->prepare("UPDATE {$table_name} SET last_login = NOW() WHERE id = :id");
+    $stmt = $db->prepare("UPDATE {$table_name} SET last_login = NOW() WHERE id = :id");
     $stmt->execute(['id' => $user['id']]);
     
     // Arahkan berdasarkan peran

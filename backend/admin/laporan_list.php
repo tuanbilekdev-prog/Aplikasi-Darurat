@@ -29,8 +29,8 @@ $offset = ($page - 1) * $per_page;
 $success = isset($_GET['success']) ? $_GET['success'] : '';
 $error = isset($_GET['error']) ? $_GET['error'] : '';
 
-// Koneksi database
-$user_db = getDB();
+// Koneksi database (single database: emergency_system)
+$db = getDB();
 
 // Query laporan dengan filter
 $reports = [];
@@ -65,7 +65,7 @@ try {
         LEFT JOIN users u ON r.user_id = u.id
         {$where_clause}
     ";
-    $stmt = $user_db->prepare($count_sql);
+    $stmt = $db->prepare($count_sql);
     $stmt->execute($params);
     $total_reports = $stmt->fetch()['total'] ?? 0;
     
@@ -79,7 +79,7 @@ try {
         LIMIT :limit OFFSET :offset
     ";
     
-    $stmt = $user_db->prepare($sql);
+    $stmt = $db->prepare($sql);
     foreach ($params as $key => $value) {
         $stmt->bindValue(':' . $key, $value);
     }

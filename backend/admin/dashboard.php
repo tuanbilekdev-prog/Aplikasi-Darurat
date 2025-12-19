@@ -24,9 +24,8 @@ $admin_name = $_SESSION['fullname'] ?? $admin_data['fullname'] ?? 'Admin';
 $success = isset($_GET['success']) ? $_GET['success'] : '';
 $error = isset($_GET['error']) ? $_GET['error'] : '';
 
-// Koneksi database
-$user_db = getDB(); // Database user untuk laporan
-$admin_db = getAdminDB(); // Database admin untuk data instansi
+// Koneksi database (single database: emergency_system)
+$db = getDB();
 
 // Statistik laporan
 $stats = [
@@ -42,7 +41,7 @@ $recent_reports = [];
 
 try {
     // Query statistik laporan hari ini
-    $stmt = $user_db->prepare("
+    $stmt = $db->prepare("
         SELECT COUNT(*) as total 
         FROM reports 
         WHERE DATE(created_at) = CURDATE()
@@ -53,7 +52,7 @@ try {
     // Query statistik berdasarkan status
     $statuses = ['pending', 'processing', 'dispatched', 'completed'];
     foreach ($statuses as $status) {
-        $stmt = $user_db->prepare("
+        $stmt = $db->prepare("
             SELECT COUNT(*) as total 
             FROM reports 
             WHERE status = :status
@@ -63,7 +62,7 @@ try {
     }
     
     // Query laporan terbaru (10 terakhir)
-    $stmt = $user_db->prepare("
+    $stmt = $db->prepare("
         SELECT r.*, u.username, u.fullname as user_fullname, u.email as user_email
         FROM reports r
         LEFT JOIN users u ON r.user_id = u.id

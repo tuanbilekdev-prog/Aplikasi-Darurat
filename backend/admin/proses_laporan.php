@@ -45,13 +45,13 @@ if (!in_array($status, $valid_statuses)) {
     exit();
 }
 
-// Koneksi database
-$user_db = getDB();
+// Koneksi database (single database: emergency_system)
+$db = getDB();
 $admin_id = getAdminId();
 
 try {
     // Cek apakah laporan ada
-    $stmt = $user_db->prepare("SELECT id, status FROM reports WHERE id = :report_id LIMIT 1");
+    $stmt = $db->prepare("SELECT id, status FROM reports WHERE id = :report_id LIMIT 1");
     $stmt->execute(['report_id' => $report_id]);
     $report = $stmt->fetch();
     
@@ -93,7 +93,7 @@ try {
     
     // Execute update
     $sql = "UPDATE reports SET " . implode(', ', $update_fields) . " WHERE id = :report_id";
-    $stmt = $user_db->prepare($sql);
+    $stmt = $db->prepare($sql);
     $stmt->execute($update_params);
     
     // Log aktivitas admin
