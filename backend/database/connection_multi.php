@@ -1,8 +1,11 @@
 <?php
 /**
- * PROJECT ONE - KONEKSI DATABASE
- * Penanganan koneksi database yang aman
- * UPDATE: Sekarang mendukung multiple database (user_db & admin_db)
+ * PROJECT ONE - KONEKSI DATABASE MULTIPLE
+ * Penanganan koneksi database untuk admin_db dan user_db
+ * 
+ * ARSITEKTUR:
+ * - admin_db: Database untuk sistem admin dan instansi
+ * - user_db: Database untuk sistem user dan laporan
  */
 
 // Konfigurasi Database - Gunakan konstanta dari config.php jika belum didefinisikan
@@ -27,7 +30,7 @@ if (!defined('DB_ADMIN_NAME')) {
     define('DB_ADMIN_NAME', 'admin_db');
 }
 
-class Database {
+class DatabaseMulti {
     private static $instances = [];
     private $connection = null;
     private $database = null;
@@ -36,7 +39,7 @@ class Database {
      * Dapatkan instance database untuk database tertentu
      * 
      * @param string $db_name Nama database ('user_db' atau 'admin_db')
-     * @return Database Instance database
+     * @return DatabaseMulti Instance database
      */
     public static function getInstance($db_name = 'user_db') {
         // Validasi nama database
@@ -116,7 +119,7 @@ class Database {
  * @return PDO Koneksi ke user_db
  */
 function getDB() {
-    return Database::getInstance('user_db')->getConnection();
+    return DatabaseMulti::getInstance('user_db')->getConnection();
 }
 
 /**
@@ -125,7 +128,7 @@ function getDB() {
  * @return PDO Koneksi ke admin_db
  */
 function getAdminDB() {
-    return Database::getInstance('admin_db')->getConnection();
+    return DatabaseMulti::getInstance('admin_db')->getConnection();
 }
 
 /**
@@ -135,7 +138,7 @@ function getAdminDB() {
  * @return PDO Koneksi database
  */
 function getDBByName($db_name) {
-    return Database::getInstance($db_name)->getConnection();
+    return DatabaseMulti::getInstance($db_name)->getConnection();
 }
 
 ?>
