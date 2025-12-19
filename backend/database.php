@@ -1,7 +1,7 @@
 <?php
 /**
- * PROJECT ONE - DATABASE CONNECTION
- * Backend: Database connection handler
+ * PROJECT ONE - KONEKSI DATABASE
+ * Backend: Penanganan koneksi database
  */
 
 require_once __DIR__ . '/config.php';
@@ -11,7 +11,7 @@ class Database {
     private $connection = null;
     
     /**
-     * Get database instance (Singleton pattern)
+     * Dapatkan instance database (pola Singleton)
      */
     public static function getInstance() {
         if (self::$instance === null) {
@@ -21,7 +21,7 @@ class Database {
     }
     
     /**
-     * Private constructor
+     * Konstruktor privat
      */
     private function __construct() {
         try {
@@ -34,33 +34,33 @@ class Database {
             
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            // In production, log error instead of displaying
+            // Di production, catat error alih-alih menampilkan
             error_log("Database connection failed: " . $e->getMessage());
             die("Database connection failed. Please contact administrator.");
         }
     }
     
     /**
-     * Get database connection
+     * Dapatkan koneksi database
      */
     public function getConnection() {
         return $this->connection;
     }
     
     /**
-     * Prevent cloning
+     * Cegah kloning
      */
     private function __clone() {}
     
     /**
-     * Prevent unserialization
+     * Cegah unserialization
      */
     public function __wakeup() {
         throw new Exception("Cannot unserialize singleton");
     }
 }
 
-// Helper function to get database connection
+// Fungsi bantuan untuk mendapatkan koneksi database
 function getDB() {
     return Database::getInstance()->getConnection();
 }

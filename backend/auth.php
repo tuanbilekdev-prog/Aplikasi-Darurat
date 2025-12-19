@@ -1,7 +1,7 @@
 <?php
 /**
- * PROJECT ONE - AUTHENTICATION HANDLER
- * Backend: User authentication functions
+ * PROJECT ONE - PENANGANAN AUTENTIKASI
+ * Backend: Fungsi autentikasi pengguna
  */
 
 require_once __DIR__ . '/config.php';
@@ -9,34 +9,34 @@ require_once __DIR__ . '/config.php';
 class Auth {
     
     /**
-     * Check if user is logged in
+     * Periksa apakah pengguna sudah masuk
      */
     public static function isAuthenticated() {
         return isLoggedIn();
     }
     
     /**
-     * Get current user ID
+     * Dapatkan ID pengguna saat ini
      */
     public static function getUserId() {
         return isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
     }
     
     /**
-     * Get current user role
+     * Dapatkan peran pengguna saat ini
      */
     public static function getUserRole() {
         return getUserRole();
     }
     
     /**
-     * Login user (placeholder - to be implemented with database)
+     * Masuk pengguna (placeholder - akan diimplementasikan dengan database)
      */
     public static function login($username, $password) {
-        // TODO: Implement database authentication
-        // This is a placeholder for future implementation
+        // TODO: Implementasikan autentikasi database
+        // Ini adalah placeholder untuk implementasi di masa depan
         
-        // Example structure:
+        // Contoh struktur:
         // $user = self::validateUser($username, $password);
         // if ($user) {
         //     $_SESSION['user_id'] = $user['id'];
@@ -50,7 +50,7 @@ class Auth {
     }
     
     /**
-     * Logout user
+     * Keluar pengguna
      */
     public static function logout() {
         $_SESSION = array();
@@ -63,7 +63,7 @@ class Auth {
     }
     
     /**
-     * Require authentication
+     * Wajibkan autentikasi
      */
     public static function requireAuth() {
         if (!self::isAuthenticated()) {
@@ -72,7 +72,7 @@ class Auth {
     }
     
     /**
-     * Require specific role
+     * Wajibkan peran tertentu
      */
     public static function requireRole($role) {
         self::requireAuth();
