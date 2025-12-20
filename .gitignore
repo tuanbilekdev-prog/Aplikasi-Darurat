@@ -1,0 +1,230 @@
+# ============================================
+# PROJECT ONE - .gitignore
+# File dan direktori yang tidak perlu di-commit ke repository
+# ============================================
+
+# ============================================
+# FILE KONFIGURASI SENSITIF
+# ============================================
+# JANGAN commit file konfigurasi yang berisi API key, password, dll
+backend/config.php
+backend/.env
+backend/.env.local
+backend/.env.production
+*.env
+*.env.local
+*.env.production
+
+# ============================================
+# FILE LOG DAN ERROR
+# ============================================
+*.log
+logs/
+error_log
+*.log.*
+backend/logs/
+backend/error_log
+backend/*.log
+
+# ============================================
+# FILE CACHE DAN TEMPORARY
+# ============================================
+cache/
+tmp/
+temp/
+*.tmp
+*.cache
+backend/cache/
+backend/tmp/
+backend/temp/
+frontend/cache/
+frontend/tmp/
+
+# ============================================
+# FILE UPLOAD USER
+# ============================================
+# File yang di-upload oleh user (foto laporan, dll)
+uploads/
+upload/
+media/
+files/
+backend/uploads/
+backend/upload/
+backend/media/
+backend/files/
+frontend/uploads/
+frontend/upload/
+
+# ============================================
+# DATABASE BACKUP DAN DUMP
+# ============================================
+*.sql.backup
+*.sql.bak
+*.sql.gz
+*.sql.zip
+*.dump
+database_backup/
+backup/
+*.backup
+*.bak
+
+# ============================================
+# VENDOR DAN DEPENDENCIES
+# ============================================
+# Jika menggunakan Composer
+vendor/
+composer.lock
+composer.phar
+
+# Jika menggunakan NPM
+node_modules/
+package-lock.json
+yarn.lock
+.npm
+
+# ============================================
+# FILE SISTEM OPERASI
+# ============================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================
+# IDE DAN EDITOR
+# ============================================
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PhpStorm / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/
+build/
+nbbuild/
+dist/
+nbdist/
+
+# ============================================
+# FILE TESTING DAN COVERAGE
+# ============================================
+# PHPUnit
+phpunit.xml
+.phpunit.result.cache
+coverage/
+tests/_output/
+tests/_support/.htaccess
+
+# ============================================
+# FILE BUILD DAN COMPILED
+# ============================================
+build/
+dist/
+*.min.js
+*.min.css
+*.map
+
+# ============================================
+# FILE SESSION
+# ============================================
+sessions/
+session/
+backend/sessions/
+backend/session/
+
+# ============================================
+# FILE SSL DAN CERTIFICATE
+# ============================================
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# ============================================
+# FILE BACKUP OTOMATIS
+# ============================================
+*.orig
+*.bak
+*~
+.#*
+
+# ============================================
+# FILE GOOGLE MAPS API KEY (JIKA ADA FILE TERPISAH)
+# ============================================
+api_keys.txt
+secrets.txt
+credentials.json
+google_api_key.txt
+
+# ============================================
+# FILE XAMPP / SERVER
+# ============================================
+# XAMPP specific
+xampp/
+htdocs/.htaccess.local
+
+# Apache
+.htaccess.local
+.htpasswd
+
+# ============================================
+# FILE DEBUGGING
+# ============================================
+debug.log
+debug.txt
+*.debug
+php_error.log
+
+# ============================================
+# CATATAN PENTING
+# ============================================
+# 
+# JANGAN commit file berikut ke repository:
+# 1. backend/config.php - Berisi API key dan konfigurasi sensitif
+# 2. File upload user - Foto laporan, dll
+# 3. Database backup - File .sql backup
+# 4. Log file - File log aplikasi
+# 5. Cache file - File cache temporary
+# 
+# Buat file contoh untuk dokumentasi:
+# - backend/config.example.php (tanpa API key)
+# - backend/.env.example (template environment variables)
+# 
+# ============================================
+

@@ -1,7 +1,14 @@
 <?php
 /**
- * PROJECT ONE - FILE KONFIGURASI
- * Pengaturan dan konfigurasi backend
+ * PROJECT ONE - FILE KONFIGURASI CONTOH
+ * 
+ * INSTRUKSI:
+ * 1. Copy file ini menjadi config.php
+ * 2. Isi dengan konfigurasi yang sesuai
+ * 3. JANGAN commit config.php ke repository (sudah di .gitignore)
+ * 
+ * File ini adalah template untuk dokumentasi
+ * JANGAN isi dengan data sensitif di sini!
  */
 
 // Mulai sesi jika belum dimulai
@@ -21,19 +28,20 @@ define('APP_PATH', dirname(__DIR__));
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'emergency_system');  // Database tunggal untuk semua data
 define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_PASS', '');  // GANTI dengan password database Anda
 define('DB_CHARSET', 'utf8mb4');
+
+// Konfigurasi Google Maps API
+// Ganti YOUR_GOOGLE_MAPS_API_KEY dengan API key Anda dari Google Cloud Console
+// Cara mendapatkan: https://console.cloud.google.com/google/maps-apis
+// PENTING: Jangan commit API key ke repository!
+define('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY');
 
 // Konfigurasi Keamanan
 define('SESSION_LIFETIME', 3600); // 1 jam
 define('PASSWORD_MIN_LENGTH', 8);
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_LOCKOUT_TIME', 900); // 15 menit
-
-// Konfigurasi Google Maps API
-// Ganti YOUR_GOOGLE_MAPS_API_KEY dengan API key Anda dari Google Cloud Console
-// Cara mendapatkan: https://console.cloud.google.com/google/maps-apis
-define('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY');
 
 // Zona Waktu
 date_default_timezone_set('Asia/Jakarta');

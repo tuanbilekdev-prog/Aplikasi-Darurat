@@ -33,6 +33,8 @@ $title = sanitizeInput($_POST['title'] ?? '');
 $category = sanitizeInput($_POST['category'] ?? '');
 $description = sanitizeInput($_POST['description'] ?? '');
 $location = sanitizeInput($_POST['location'] ?? '');
+$latitude = isset($_POST['latitude']) && !empty($_POST['latitude']) ? floatval($_POST['latitude']) : null;
+$longitude = isset($_POST['longitude']) && !empty($_POST['longitude']) ? floatval($_POST['longitude']) : null;
 $urgent = isset($_POST['urgent']) ? 1 : 0;
 
 // Validasi
@@ -56,6 +58,11 @@ if (empty($location)) {
     $errors[] = 'Lokasi wajib diisi';
 }
 
+// Validasi koordinat (opsional, tapi disarankan)
+if ($latitude === null || $longitude === null) {
+    $errors[] = 'Silakan pilih lokasi di peta atau gunakan tombol "Gunakan Lokasi Saya"';
+}
+
 // Jika ada error, arahkan kembali dengan pesan error
 if (!empty($errors)) {
     $error_msg = implode(', ', $errors);
@@ -66,10 +73,10 @@ if (!empty($errors)) {
 try {
     $db = getDB();
     
-    // Masukkan laporan ke database
+    // Masukkan laporan ke database (termasuk latitude dan longitude)
     $stmt = $db->prepare("
-        INSERT INTO reports (user_id, title, category, description, location, urgent, status, created_at)
-        VALUES (:user_id, :title, :category, :description, :location, :urgent, 'pending', NOW())
+        INSERT INTO reports (user_id, title, category, description, location, latitude, longitude, urgent, status, created_at)
+        VALUES (:user_id, :title, :category, :description, :location, :latitude, :longitude, :urgent, 'pending', NOW())
     ");
     
     $stmt->execute([
@@ -78,6 +85,8 @@ try {
         'category' => $category,
         'description' => $description,
         'location' => $location,
+        'latitude' => $latitude,
+        'longitude' => $longitude,
         'urgent' => $urgent
     ]);
     
