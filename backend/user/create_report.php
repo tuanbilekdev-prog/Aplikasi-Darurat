@@ -39,6 +39,12 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
     
     <!-- Stylesheet -->
     <link rel="stylesheet" href="../../frontend/assets/css/user-dashboard.css">
+    <link rel="stylesheet" href="../../frontend/assets/css/maps.css">
+    
+    <!-- Google Maps API -->
+    <!-- CATATAN: libraries=places DIHAPUS untuk menghemat credit Places API -->
+    <!-- User form hanya menggunakan Geocoding API (gratis) untuk reverse geocode, bukan Places API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=<?php echo defined('GOOGLE_MAPS_API_KEY') ? GOOGLE_MAPS_API_KEY : 'YOUR_GOOGLE_MAPS_API_KEY'; ?>&callback=initMap" async defer></script>
 </head>
 <body>
     <?php include '../partials/user_navbar.php'; ?>
@@ -122,13 +128,26 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
                             placeholder="Alamat atau lokasi kejadian"
                             required
                         >
-                        <button type="button" class="btn-location" id="getLocationBtn">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="currentColor" stroke-width="2"/>
-                                <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                            Gunakan Lokasi Saat Ini
-                        </button>
+                        <div class="map-controls">
+                            <button type="button" class="btn-location" id="getLocationBtn">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="currentColor" stroke-width="2"/>
+                                    <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Gunakan Lokasi Saya
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Input Hidden untuk Koordinat -->
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+
+                    <!-- Google Maps Container -->
+                    <div class="form-group">
+                        <label class="form-label">Pilih Lokasi di Peta <span class="required">*</span></label>
+                        <div id="map" class="map-container"></div>
+                        <p class="map-hint">Klik pada peta untuk memilih lokasi kejadian, atau gunakan tombol "Gunakan Lokasi Saya" di atas</p>
                     </div>
 
                     <div class="form-group">
@@ -166,34 +185,155 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
             });
         }
 
-        // Dapatkan lokasi saat ini
-        const getLocationBtn = document.getElementById('getLocationBtn');
-        const locationInput = document.getElementById('location');
-        
-        if (getLocationBtn && locationInput) {
-            getLocationBtn.addEventListener('click', function() {
-                if (navigator.geolocation) {
-                    this.disabled = true;
-                    this.innerHTML = '<span>Mendapatkan lokasi...</span>';
-                    
-                    navigator.geolocation.getCurrentPosition(
-                        function(position) {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            locationInput.value = `${lat}, ${lng}`;
-                            getLocationBtn.disabled = false;
-                            getLocationBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/></svg>Gunakan Lokasi Saat Ini</button>';
-                        },
-                        function(error) {
-                            alert('Tidak dapat mendapatkan lokasi. Silakan isi manual.');
-                            getLocationBtn.disabled = false;
-                            getLocationBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/></svg>Gunakan Lokasi Saat Ini</button>';
-                        }
-                    );
-                } else {
-                    alert('Browser tidak mendukung geolocation');
-                }
+        // Variabel global untuk Google Maps
+        let map;
+        let marker;
+        let geocoder;
+        const defaultCenter = { lat: -6.2088, lng: 106.8456 }; // Jakarta, Indonesia
+
+        // Inisialisasi Google Maps
+        function initMap() {
+            // Buat peta
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: defaultCenter,
+                zoom: 13,
+                mapTypeControl: true,
+                streetViewControl: true,
+                fullscreenControl: true
             });
+
+            geocoder = new google.maps.Geocoder();
+
+            // Event listener untuk klik peta
+            map.addListener('click', function(event) {
+                const lat = event.latLng.lat();
+                const lng = event.latLng.lng();
+                
+                // Set koordinat ke input hidden
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+
+                // Hapus marker lama jika ada
+                if (marker) {
+                    marker.setMap(null);
+                }
+
+                // Buat marker baru
+                marker = new google.maps.Marker({
+                    position: { lat: lat, lng: lng },
+                    map: map,
+                    draggable: true,
+                    animation: google.maps.Animation.DROP
+                });
+
+                // Update koordinat saat marker di-drag
+                marker.addListener('dragend', function(event) {
+                    const newLat = event.latLng.lat();
+                    const newLng = event.latLng.lng();
+                    document.getElementById('latitude').value = newLat;
+                    document.getElementById('longitude').value = newLng;
+                    
+                    // Reverse geocode untuk mendapatkan alamat
+                    reverseGeocode(newLat, newLng);
+                });
+
+                // Reverse geocode untuk mendapatkan alamat
+                reverseGeocode(lat, lng);
+            });
+
+            // Tombol "Gunakan Lokasi Saya"
+            const getLocationBtn = document.getElementById('getLocationBtn');
+            const locationInput = document.getElementById('location');
+            
+            if (getLocationBtn) {
+                getLocationBtn.addEventListener('click', function() {
+                    if (navigator.geolocation) {
+                        this.disabled = true;
+                        const originalHTML = this.innerHTML;
+                        this.innerHTML = '<span>Mendapatkan lokasi...</span>';
+                        
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                
+                                // Set koordinat ke input hidden
+                                document.getElementById('latitude').value = lat;
+                                document.getElementById('longitude').value = lng;
+                                
+                                // Pindahkan peta ke lokasi user
+                                const userLocation = { lat: lat, lng: lng };
+                                map.setCenter(userLocation);
+                                map.setZoom(15);
+                                
+                                // Hapus marker lama jika ada
+                                if (marker) {
+                                    marker.setMap(null);
+                                }
+                                
+                                // Buat marker baru
+                                marker = new google.maps.Marker({
+                                    position: userLocation,
+                                    map: map,
+                                    draggable: true,
+                                    animation: google.maps.Animation.DROP
+                                });
+                                
+                                // Update koordinat saat marker di-drag
+                                marker.addListener('dragend', function(event) {
+                                    const newLat = event.latLng.lat();
+                                    const newLng = event.latLng.lng();
+                                    document.getElementById('latitude').value = newLat;
+                                    document.getElementById('longitude').value = newLng;
+                                    reverseGeocode(newLat, newLng);
+                                });
+                                
+                                // Reverse geocode untuk mendapatkan alamat
+                                reverseGeocode(lat, lng);
+                                
+                                getLocationBtn.disabled = false;
+                                getLocationBtn.innerHTML = originalHTML;
+                            },
+                            function(error) {
+                                alert('Tidak dapat mendapatkan lokasi. Silakan pilih lokasi di peta atau isi manual.');
+                                getLocationBtn.disabled = false;
+                                getLocationBtn.innerHTML = originalHTML;
+                            }
+                        );
+                    } else {
+                        alert('Browser tidak mendukung geolocation');
+                    }
+                });
+            }
+
+            // Fungsi reverse geocode (koordinat ke alamat)
+            // CATATAN: Fungsi ini menggunakan Geocoding API (GRATIS), bukan Places API
+            // Geocoding API tidak dikenakan biaya untuk penggunaan normal
+            // Ini berbeda dengan Places API yang dikenakan biaya per request
+            function reverseGeocode(lat, lng) {
+                geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+                    if (status === 'OK' && results[0]) {
+                        locationInput.value = results[0].formatted_address;
+                    } else {
+                        locationInput.value = `${lat}, ${lng}`;
+                    }
+                });
+            }
+
+            // Validasi form sebelum submit
+            const reportForm = document.getElementById('reportForm');
+            if (reportForm) {
+                reportForm.addEventListener('submit', function(e) {
+                    const lat = document.getElementById('latitude').value;
+                    const lng = document.getElementById('longitude').value;
+                    
+                    if (!lat || !lng) {
+                        e.preventDefault();
+                        alert('Silakan pilih lokasi di peta atau gunakan tombol "Gunakan Lokasi Saya"');
+                        return false;
+                    }
+                });
+            }
         }
     </script>
 </body>
