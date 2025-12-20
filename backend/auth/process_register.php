@@ -125,12 +125,14 @@ try {
         $has_fullname = false;
     }
     
-    // Masukkan pengguna baru dengan peran otomatis disetel ke 'user'
-    // PENTING: Peran di-hardcode ke 'user', jangan pernah terima dari form
+    // Masukkan pengguna baru ke tabel users
+    // CATATAN: Tabel users tidak memiliki kolom 'role' karena admin dan user sudah dipisah
+    // Semua yang register di sini otomatis adalah user biasa (bukan admin)
+    // Admin ada di tabel terpisah (tabel admin)
     if ($has_fullname) {
         $stmt = $db->prepare("
-            INSERT INTO users (fullname, username, email, password, role, status, created_at)
-            VALUES (:fullname, :username, :email, :password, 'user', 'active', NOW())
+            INSERT INTO users (fullname, username, email, password, status, created_at)
+            VALUES (:fullname, :username, :email, :password, 'active', NOW())
         ");
         
         $stmt->execute([
@@ -141,9 +143,11 @@ try {
         ]);
     } else {
         // Fallback: masukkan tanpa fullname jika kolom tidak ada
+        // CATATAN: Ini seharusnya tidak terjadi jika database sudah di-migrate dengan benar
+        // Tabel users di schema baru (00_single_database.sql) sudah memiliki kolom fullname
         $stmt = $db->prepare("
-            INSERT INTO users (username, email, password, role, status, created_at)
-            VALUES (:username, :email, :password, 'user', 'active', NOW())
+            INSERT INTO users (username, email, password, status, created_at)
+            VALUES (:username, :email, :password, 'active', NOW())
         ");
         
         $stmt->execute([
@@ -173,9 +177,11 @@ try {
         ]);
         header('Location: register.php?' . $params);
     } elseif (strpos($e->getMessage(), 'Unknown column') !== false) {
-        // Kolom tidak ada - kemungkinan kolom fullname hilang
+        // Kolom tidak ada - kemungkinan database belum di-migrate dengan benar
+        // CATATAN: migration_add_fullname.sql sudah tidak digunakan
+        // Gunakan 00_single_database.sql untuk setup database baru
         $params = http_build_query([
-            'error' => 'Database belum diupdate. Silakan jalankan migration_add_fullname.sql terlebih dahulu.',
+            'error' => 'Database belum diupdate. Silakan jalankan 00_single_database.sql terlebih dahulu untuk setup database baru.',
             'fullname' => $fullname,
             'username' => $username,
             'email' => $email
