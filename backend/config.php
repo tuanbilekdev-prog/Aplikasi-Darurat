@@ -33,7 +33,7 @@ define('LOGIN_LOCKOUT_TIME', 900); // 15 menit
 // Konfigurasi Google Maps API
 // Ganti YOUR_GOOGLE_MAPS_API_KEY dengan API key Anda dari Google Cloud Console
 // Cara mendapatkan: https://console.cloud.google.com/google/maps-apis
-define('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY');
+define('GOOGLE_MAPS_API_KEY', 'AIzaSyAETLDDSsd-IKpj0ZkPTf9FHZdFESYBYgY');
 
 // Zona Waktu
 date_default_timezone_set('Asia/Jakarta');
