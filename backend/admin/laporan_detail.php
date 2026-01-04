@@ -322,7 +322,17 @@ $statuses = [
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="admin_notes">Catatan Penanganan</label>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                        <label for="admin_notes">Catatan Penanganan</label>
+                                        <button type="button" id="generateAISuggestionBtn" class="btn-ai-suggestion" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(77, 163, 255, 0.1); color: #4DA3FF; border: 1px solid rgba(77, 163, 255, 0.3); border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;">
+                                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            Generate AI Suggestion
+                                        </button>
+                                    </div>
                                     <textarea 
                                         id="admin_notes" 
                                         name="admin_notes" 
@@ -330,6 +340,13 @@ $statuses = [
                                         rows="4"
                                         placeholder="Tambahkan catatan penanganan laporan ini..."
                                     ><?php echo htmlspecialchars($report['admin_notes'] ?? ''); ?></textarea>
+                                    <div id="aiSuggestionLoading" style="display: none; margin-top: 8px; padding: 12px; background: rgba(77, 163, 255, 0.05); border-radius: 6px; font-size: 0.875rem; color: #4DA3FF;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div class="spinner" style="width: 16px; height: 16px; border: 2px solid rgba(77, 163, 255, 0.3); border-top-color: #4DA3FF; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                                            <span>Memgenerate suggestion...</span>
+                                        </div>
+                                    </div>
+                                    <div id="aiSuggestionError" style="display: none; margin-top: 8px; padding: 12px; background: rgba(220, 53, 69, 0.1); border-radius: 6px; font-size: 0.875rem; color: #dc3545; border-left: 3px solid #dc3545;"></div>
                                 </div>
                                 
                                 <div class="form-group">
@@ -362,6 +379,84 @@ $statuses = [
 
     <!-- JavaScript -->
     <script src="../../frontend/assets/js/admin-dashboard.js"></script>
+    
+    <script>
+        // AI Suggestion Generator
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generateAISuggestionBtn');
+            const adminNotesTextarea = document.getElementById('admin_notes');
+            const loadingDiv = document.getElementById('aiSuggestionLoading');
+            const errorDiv = document.getElementById('aiSuggestionError');
+            
+            if (generateBtn && adminNotesTextarea) {
+                generateBtn.addEventListener('click', function() {
+                    const reportId = <?php echo $report_id; ?>;
+                    
+                    // Show loading
+                    loadingDiv.style.display = 'block';
+                    errorDiv.style.display = 'none';
+                    generateBtn.disabled = true;
+                    generateBtn.style.opacity = '0.6';
+                    generateBtn.style.cursor = 'not-allowed';
+                    
+                    // Make API call
+                    const formData = new FormData();
+                    formData.append('report_id', reportId);
+                    
+                    fetch('api_generate_suggestion.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingDiv.style.display = 'none';
+                        generateBtn.disabled = false;
+                        generateBtn.style.opacity = '1';
+                        generateBtn.style.cursor = 'pointer';
+                        
+                        if (data.success) {
+                            // Set suggestion to textarea
+                            adminNotesTextarea.value = data.suggestion;
+                            adminNotesTextarea.focus();
+                            
+                            // Show success message briefly
+                            if (data.fallback) {
+                                generateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Suggestion Generated (Template)';
+                            } else {
+                                generateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Suggestion Generated (AI)';
+                            }
+                            
+                            setTimeout(() => {
+                                generateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Generate AI Suggestion';
+                            }, 3000);
+                        } else {
+                            errorDiv.textContent = data.error || 'Gagal generate suggestion';
+                            errorDiv.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        loadingDiv.style.display = 'none';
+                        generateBtn.disabled = false;
+                        generateBtn.style.opacity = '1';
+                        generateBtn.style.cursor = 'pointer';
+                        errorDiv.textContent = 'Terjadi kesalahan: ' + error.message;
+                        errorDiv.style.display = 'block';
+                        console.error('Error:', error);
+                    });
+                });
+            }
+        });
+    </script>
+    
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .btn-ai-suggestion:hover:not(:disabled) {
+            background: rgba(77, 163, 255, 0.2);
+            border-color: rgba(77, 163, 255, 0.5);
+        }
+    </style>
     
     <?php if ($report['latitude'] && $report['longitude']): ?>
     <script>

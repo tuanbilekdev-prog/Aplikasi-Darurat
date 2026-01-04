@@ -39,6 +39,13 @@ define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID');
 define('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET');
 define('GOOGLE_REDIRECT_URI', APP_URL . '/backend/auth/google_callback.php');
 
+// Konfigurasi OpenAI API (untuk AI Features - Optional)
+// Dapatkan API key dari: https://platform.openai.com/api-keys
+// PENTING: Jangan commit API key ke repository!
+// Jika tidak menggunakan AI, kosongkan atau hapus baris ini
+define('OPENAI_API_KEY', ''); // GANTI dengan OpenAI API key Anda
+define('OPENAI_API_ENABLED', !empty(OPENAI_API_KEY)); // Auto-enable jika API key ada
+
 // Konfigurasi Keamanan
 define('SESSION_LIFETIME', 3600); // 1 jam
 define('PASSWORD_MIN_LENGTH', 8);
