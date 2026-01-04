@@ -220,8 +220,11 @@ php_error.log
 # ============================================
 # DOCKER & CONTAINER
 # ============================================
-docker-compose.override.yml
+# Keep docker-compose.yml and Dockerfile (needed for deployment)
+# docker-compose.yml
+# Dockerfile
 .docker/
+docker-compose.override.yml
 docker-compose.local.yml
 docker-compose.prod.yml
 *.dockerfile
