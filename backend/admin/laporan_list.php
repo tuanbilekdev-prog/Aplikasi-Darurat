@@ -264,7 +264,7 @@ $statuses = [
                                         <div class="report-title-cell">
                                             <strong><?php echo htmlspecialchars($report['title']); ?></strong>
                                             <?php if ($report['urgent']): ?>
-                                                <span class="badge badge-urgent">URGENT</span>
+                                                <span class="badge badge-urgent">DARURAT</span>
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -293,7 +293,7 @@ $statuses = [
                                     </td>
                                     <td>
                                         <span class="status-badge status-<?php echo strtolower($report['status']); ?>">
-                                            <?php echo $statuses[$report['status']] ?? ucfirst($report['status']); ?>
+                                            <?php echo $statuses[$report['status']] ?? 'Tidak Diketahui'; ?>
                                         </span>
                                     </td>
                                     <td>

@@ -83,9 +83,19 @@ try {
         $update_fields[] = "dispatched_at = NOW()";
     }
     
+    // Reset dispatched_at jika status mundur dari dispatched/completed ke tahap sebelumnya
+    if (($status === 'pending' || $status === 'processing') && ($report['status'] === 'dispatched' || $report['status'] === 'completed')) {
+        $update_fields[] = "dispatched_at = NULL";
+    }
+    
     // Set waktu completed jika status berubah ke completed
     if ($status === 'completed' && $report['status'] !== 'completed') {
         $update_fields[] = "completed_at = NOW()";
+    }
+    
+    // Reset completed_at jika status mundur dari completed ke tahap sebelumnya
+    if ($status !== 'completed' && $report['status'] === 'completed') {
+        $update_fields[] = "completed_at = NULL";
     }
     
     // Update timestamp

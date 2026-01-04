@@ -8,10 +8,12 @@ session_start();
 require_once __DIR__ . '/../database/connection.php';
 require_once __DIR__ . '/../config.php';
 
-// Konfigurasi Google OAuth
-define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID');
-define('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET');
-define('GOOGLE_REDIRECT_URI', APP_URL . '/backend/auth/google_callback.php');
+// Periksa apakah Google OAuth sudah dikonfigurasi
+if (!defined('GOOGLE_CLIENT_ID') || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID' || 
+    !defined('GOOGLE_CLIENT_SECRET') || GOOGLE_CLIENT_SECRET === 'YOUR_GOOGLE_CLIENT_SECRET') {
+    header('Location: login.php?error=' . urlencode('Google OAuth belum dikonfigurasi. Silakan set GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET di config.php'));
+    exit();
+}
 
 // Verifikasi token state (perlindungan CSRF)
 if (!isset($_GET['state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
@@ -98,7 +100,7 @@ try {
     
     // Periksa apakah pengguna ada
     $db = getDB();
-    $stmt = $db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
+    $stmt = $db->prepare("SELECT id, username, email, fullname, status, google_id FROM users WHERE email = :email LIMIT 1");
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch();
     
@@ -109,11 +111,12 @@ try {
             $stmt->execute(['google_id' => $google_id, 'id' => $user['id']]);
         }
         
-        // Setel sesi
+        // Setel sesi (user biasa, bukan admin)
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];
-        $_SESSION['user_role'] = $user['role'];
+        $_SESSION['fullname'] = $user['fullname'] ?? '';
+        $_SESSION['user_role'] = 'user'; // User biasa (admin ada di tabel admin terpisah)
         $_SESSION['logged_in'] = true;
         $_SESSION['login_time'] = time();
         
@@ -121,10 +124,21 @@ try {
         $stmt = $db->prepare("UPDATE users SET last_login = NOW() WHERE id = :id");
         $stmt->execute(['id' => $user['id']]);
         
+        // Arahkan ke dashboard user
+        header('Location: ../user/dashboard.php');
+        exit();
+        
     } else {
         // Auto-daftarkan pengguna baru
+        $fullname = $name ?: $email; // Gunakan nama dari Google, jika tidak ada gunakan email
         $username = strtolower(str_replace(' ', '', $name));
         $username = preg_replace('/[^a-z0-9]/', '', $username);
+        
+        // Jika username kosong (karena name tidak tersedia), buat dari email
+        if (empty($username)) {
+            $email_parts = explode('@', $email);
+            $username = $email_parts[0];
+        }
         
         // Pastikan username unik
         $original_username = $username;
@@ -139,15 +153,16 @@ try {
             $counter++;
         }
         
-        // Masukkan pengguna baru
+        // Masukkan pengguna baru ke tabel users
         $stmt = $db->prepare("
-            INSERT INTO users (username, email, password, role, google_id, status, created_at)
-            VALUES (:username, :email, :password, 'user', :google_id, 'active', NOW())
+            INSERT INTO users (username, email, password, fullname, google_id, status, created_at)
+            VALUES (:username, :email, :password, :fullname, :google_id, 'active', NOW())
         ");
         $stmt->execute([
             'username' => $username,
             'email' => $email,
-            'password' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT), // Password acak
+            'password' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT), // Password acak untuk user Google
+            'fullname' => $fullname,
             'google_id' => $google_id
         ]);
         
@@ -157,19 +172,15 @@ try {
         $_SESSION['user_id'] = $user_id;
         $_SESSION['username'] = $username;
         $_SESSION['email'] = $email;
+        $_SESSION['fullname'] = $fullname;
         $_SESSION['user_role'] = 'user';
         $_SESSION['logged_in'] = true;
         $_SESSION['login_time'] = time();
-    }
-    
-    // Arahkan berdasarkan peran
-    $role = $_SESSION['user_role'];
-    if ($role === 'admin') {
-        header('Location: ../admin/dashboard.php');
-    } else {
+        
+        // Arahkan ke dashboard user
         header('Location: ../user/dashboard.php');
+        exit();
     }
-    exit();
     
 } catch (Exception $e) {
     error_log("Google OAuth error: " . $e->getMessage());

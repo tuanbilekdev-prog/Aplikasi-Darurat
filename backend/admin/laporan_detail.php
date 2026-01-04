@@ -101,6 +101,10 @@ $statuses = [
     
     <!-- Stylesheet -->
     <link rel="stylesheet" href="../../frontend/assets/css/admin-dashboard.css">
+    
+    <!-- Leaflet.js - OpenStreetMap (GRATIS, tidak perlu API key) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <?php include '../partials/admin_navbar.php'; ?>
@@ -164,10 +168,10 @@ $statuses = [
                         <div class="card-body">
                             <div class="status-display">
                                 <span class="status-badge status-<?php echo strtolower($report['status']); ?> large">
-                                    <?php echo $statuses[$report['status']] ?? ucfirst($report['status']); ?>
+                                    <?php echo $statuses[$report['status']] ?? 'Tidak Diketahui'; ?>
                                 </span>
                                 <?php if ($report['urgent']): ?>
-                                    <span class="badge badge-urgent large">URGENT</span>
+                                    <span class="badge badge-urgent large">DARURAT</span>
                                 <?php endif; ?>
                             </div>
                             <div class="status-info">
@@ -220,6 +224,9 @@ $statuses = [
                                             Buka di Google Maps
                                         </a>
                                     </p>
+                                    <div class="location-map-container">
+                                        <div id="reportMap" style="width: 100%; height: 300px; border-radius: 8px; margin-top: 12px;"></div>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -355,6 +362,28 @@ $statuses = [
 
     <!-- JavaScript -->
     <script src="../../frontend/assets/js/admin-dashboard.js"></script>
+    
+    <?php if ($report['latitude'] && $report['longitude']): ?>
+    <script>
+        // Initialize map for report location
+        const reportLat = <?php echo $report['latitude']; ?>;
+        const reportLng = <?php echo $report['longitude']; ?>;
+        const reportLocation = <?php echo json_encode($report['location']); ?>;
+        
+        // Initialize Leaflet map
+        const reportMap = L.map('reportMap').setView([reportLat, reportLng], 15);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(reportMap);
+        
+        // Add marker for report location
+        const reportMarker = L.marker([reportLat, reportLng]).addTo(reportMap);
+        reportMarker.bindPopup('<strong>Lokasi Kejadian</strong><br>' + reportLocation).openPopup();
+    </script>
+    <?php endif; ?>
 </body>
 </html>
 

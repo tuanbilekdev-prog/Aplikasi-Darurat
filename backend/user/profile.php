@@ -14,9 +14,17 @@ if (!isLoggedIn()) {
     exit();
 }
 
-// Periksa peran - harus 'user'
-if (getUserRole() !== 'user') {
-    header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
+// Periksa peran - harus 'user' (bukan admin)
+$user_role = getUserRole();
+if ($user_role !== 'user') {
+    // Jika user adalah admin, redirect ke admin dashboard
+    if (in_array($user_role, ['super_admin', 'admin', 'operator'])) {
+        header('Location: ../admin/dashboard.php?error=' . urlencode('Akses ditolak. Halaman ini hanya untuk user biasa.'));
+        exit();
+    }
+    // Jika role tidak valid, clear session dan redirect ke login
+    session_destroy();
+    header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak. Silakan login ulang.'));
     exit();
 }
 
@@ -98,11 +106,11 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
 
                     <div class="profile-info">
                         <div class="info-item">
-                            <span class="info-label">Username</span>
+                            <span class="info-label">Nama Pengguna</span>
                             <span class="info-value"><?php echo htmlspecialchars($user['username']); ?></span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Email</span>
+                            <span class="info-label">Surel</span>
                             <span class="info-value"><?php echo htmlspecialchars($user['email']); ?></span>
                         </div>
                         <div class="info-item">

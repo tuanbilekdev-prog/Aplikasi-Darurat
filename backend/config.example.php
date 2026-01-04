@@ -31,11 +31,13 @@ define('DB_USER', 'root');
 define('DB_PASS', '');  // GANTI dengan password database Anda
 define('DB_CHARSET', 'utf8mb4');
 
-// Konfigurasi Google Maps API
-// Ganti YOUR_GOOGLE_MAPS_API_KEY dengan API key Anda dari Google Cloud Console
-// Cara mendapatkan: https://console.cloud.google.com/google/maps-apis
-// PENTING: Jangan commit API key ke repository!
-define('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY');
+// Konfigurasi Google OAuth 2.0
+// Ganti dengan kredensial Google OAuth Anda dari Google Cloud Console
+// Cara mendapatkan: https://console.cloud.google.com/apis/credentials
+// PENTING: Jangan commit kredensial OAuth ke repository!
+define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID');
+define('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET');
+define('GOOGLE_REDIRECT_URI', APP_URL . '/backend/auth/google_callback.php');
 
 // Konfigurasi Keamanan
 define('SESSION_LIFETIME', 3600); // 1 jam

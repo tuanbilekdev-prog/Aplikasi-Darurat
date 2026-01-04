@@ -7,11 +7,12 @@
 session_start();
 require_once __DIR__ . '/../config.php';
 
-// Konfigurasi Google OAuth
-// TODO: Ganti dengan kredensial Google OAuth Anda yang sebenarnya
-define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID');
-define('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET');
-define('GOOGLE_REDIRECT_URI', APP_URL . '/backend/auth/google_callback.php');
+// Periksa apakah Google OAuth sudah dikonfigurasi
+if (!defined('GOOGLE_CLIENT_ID') || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID' || 
+    !defined('GOOGLE_CLIENT_SECRET') || GOOGLE_CLIENT_SECRET === 'YOUR_GOOGLE_CLIENT_SECRET') {
+    header('Location: login.php?error=' . urlencode('Google OAuth belum dikonfigurasi. Silakan set GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET di config.php'));
+    exit();
+}
 
 // Generate token state untuk perlindungan CSRF
 $_SESSION['oauth_state'] = bin2hex(random_bytes(16));

@@ -9,10 +9,10 @@ session_start();
 // Jika sudah masuk, arahkan ke dashboard
 if (isset($_SESSION['user_id'])) {
     $role = $_SESSION['user_role'] ?? 'user';
-    if ($role === 'admin') {
-        header('Location: admin/dashboard.php');
+    if (in_array($role, ['super_admin', 'admin', 'operator'])) {
+        header('Location: ../admin/dashboard.php');
     } else {
-        header('Location: user/dashboard.php');
+        header('Location: ../user/dashboard.php');
     }
     exit();
 }

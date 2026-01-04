@@ -14,9 +14,17 @@ if (!isLoggedIn()) {
     exit();
 }
 
-// Periksa peran - harus 'user'
-if (getUserRole() !== 'user') {
-    header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
+// Periksa peran - harus 'user' (bukan admin)
+$user_role = getUserRole();
+if ($user_role !== 'user') {
+    // Jika user adalah admin, redirect ke admin dashboard
+    if (in_array($user_role, ['super_admin', 'admin', 'operator'])) {
+        header('Location: ../admin/dashboard.php?error=' . urlencode('Akses ditolak. Halaman ini hanya untuk user biasa.'));
+        exit();
+    }
+    // Jika role tidak valid, clear session dan redirect ke login
+    session_destroy();
+    header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak. Silakan login ulang.'));
     exit();
 }
 
@@ -42,20 +50,54 @@ try {
     $recent_reports = $stmt->fetchAll();
     
     // Ambil jumlah total laporan
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM reports WHERE user_id = :user_id");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE user_id = :user_id");
     $stmt->execute(['user_id' => $user_id]);
-    $total_reports = $stmt->fetch()['total'] ?? 0;
+    $total_reports = (int)$stmt->fetchColumn();
     
-    // Ambil jumlah laporan yang menunggu
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM reports WHERE user_id = :user_id AND status = 'pending'");
+    // Ambil jumlah laporan bulan ini
+    $stmt = $db->prepare("
+        SELECT COUNT(*) 
+        FROM reports 
+        WHERE user_id = :user_id 
+        AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
+        AND YEAR(created_at) = YEAR(CURRENT_DATE())
+    ");
     $stmt->execute(['user_id' => $user_id]);
-    $pending_reports = $stmt->fetch()['total'] ?? 0;
+    $reports_this_month = (int)$stmt->fetchColumn();
+    
+    // Ambil jumlah laporan berdasarkan status
+    $statuses = ['pending', 'processing', 'dispatched', 'completed', 'cancelled'];
+    $report_stats = [];
+    foreach ($statuses as $status) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE user_id = :user_id AND status = :status");
+        $stmt->execute(['user_id' => $user_id, 'status' => $status]);
+        $report_stats[$status] = (int)$stmt->fetchColumn();
+    }
+    
+    // Ambil laporan aktif (pending/processing) untuk card
+    $stmt = $db->prepare("
+        SELECT id, title, status, created_at, urgent
+        FROM reports 
+        WHERE user_id = :user_id 
+        AND (status = 'pending' OR status = 'processing')
+        ORDER BY urgent DESC, created_at DESC
+        LIMIT 3
+    ");
+    $stmt->execute(['user_id' => $user_id]);
+    $active_reports = $stmt->fetchAll();
     
 } catch (PDOException $e) {
     error_log("Dashboard error: " . $e->getMessage());
     $recent_reports = [];
     $total_reports = 0;
-    $pending_reports = 0;
+    $report_stats = [
+        'pending' => 0,
+        'processing' => 0,
+        'dispatched' => 0,
+        'completed' => 0,
+        'cancelled' => 0
+    ];
+    $active_reports = [];
 }
 
 ?>
@@ -119,56 +161,140 @@ try {
         <div class="container">
             <!-- Quick Stats -->
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon stat-icon-primary">
+                <div class="stat-card stat-primary">
+                    <div class="stat-icon">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
                         </svg>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-number"><?php echo $total_reports; ?></div>
+                        <div class="stat-number"><?php echo number_format($total_reports); ?></div>
                         <div class="stat-label">Total Laporan</div>
                     </div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon stat-icon-warning">
+                <div class="stat-card stat-warning">
+                    <div class="stat-icon">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 8V12M12 16H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-number"><?php echo $pending_reports; ?></div>
+                        <div class="stat-number"><?php echo number_format($report_stats['pending']); ?></div>
                         <div class="stat-label">Menunggu</div>
                     </div>
+                </div>
+                
+                <div class="stat-card stat-info">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number"><?php echo number_format($report_stats['processing']); ?></div>
+                        <div class="stat-label">Diproses</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card" style="background: rgba(108, 117, 125, 0.1); border-left: 4px solid #6c757d;">
+                    <div class="stat-icon" style="color: #6c757d;">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" style="color: #6c757d;"><?php echo number_format($report_stats['dispatched']); ?></div>
+                        <div class="stat-label">Ditugaskan</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card stat-success">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number"><?php echo number_format($report_stats['completed']); ?></div>
+                        <div class="stat-label">Selesai</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card" style="background: rgba(220, 53, 69, 0.1); border-left: 4px solid #dc3545;">
+                    <div class="stat-icon" style="color: #dc3545;">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" style="color: #dc3545;"><?php echo number_format($report_stats['cancelled']); ?></div>
+                        <div class="stat-label">Dibatalkan</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Laporan Aktif (Full Width) -->
+            <div class="card-full-width-container" style="margin-bottom: 32px;">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h2 class="card-title">Laporan Aktif</h2>
+                    </div>
+                    
+                    <?php if (empty($active_reports)): ?>
+                        <div class="empty-state">
+                            <p>Tidak ada laporan aktif</p>
+                            <p class="empty-subtitle">Semua laporan Anda sudah diproses</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="reports-list">
+                            <?php foreach ($active_reports as $report): ?>
+                                <a href="report_detail.php?id=<?php echo $report['id']; ?>" class="report-item" style="text-decoration: none; color: inherit;">
+                                    <div class="report-info">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <h3 class="report-title"><?php echo htmlspecialchars($report['title'] ?? 'Laporan'); ?></h3>
+                                            <?php if ($report['urgent']): ?>
+                                                <span style="background: #E63946; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">DARURAT</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <p class="report-date"><?php echo date('d M Y, H:i', strtotime($report['created_at'])); ?></p>
+                                    </div>
+                                    <span class="status-badge status-<?php echo strtolower($report['status']); ?>">
+                                        <?php 
+                                        $status_text = [
+                                            'pending' => 'Menunggu',
+                                            'processing' => 'Diproses',
+                                            'dispatched' => 'Ditugaskan',
+                                            'completed' => 'Selesai',
+                                            'cancelled' => 'Dibatalkan'
+                                        ];
+                                        echo $status_text[$report['status']] ?? 'Tidak Diketahui';
+                                        ?>
+                                    </span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <a href="history.php" class="card-link">Lihat Semua Laporan →</a>
                 </div>
             </div>
 
             <!-- Main Cards Grid -->
             <div class="cards-grid">
-                <!-- Card 1: Buat Laporan Darurat -->
-                <div class="dashboard-card card-primary">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                        <h2 class="card-title">Buat Laporan Darurat</h2>
-                    </div>
-                    <p class="card-description">
-                        Laporkan kejadian darurat yang Anda alami atau saksikan. 
-                        Tim kami akan segera merespons laporan Anda.
-                    </p>
-                    <a href="create_report.php" class="card-button">
-                        Buat Laporan
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </a>
-                </div>
-
                 <!-- Card 2: Riwayat Laporan -->
                 <div class="dashboard-card">
                     <div class="card-header">
@@ -198,9 +324,11 @@ try {
                                         $status_text = [
                                             'pending' => 'Menunggu',
                                             'processing' => 'Diproses',
-                                            'completed' => 'Selesai'
+                                            'dispatched' => 'Ditugaskan',
+                                            'completed' => 'Selesai',
+                                            'cancelled' => 'Dibatalkan'
                                         ];
-                                        echo $status_text[$report['status']] ?? ucfirst($report['status']);
+                                        echo $status_text[$report['status']] ?? 'Tidak Diketahui';
                                         ?>
                                     </span>
                                 </div>
@@ -211,30 +339,7 @@ try {
                     <a href="history.php" class="card-link">Lihat Semua Riwayat →</a>
                 </div>
 
-                <!-- Card 3: Lokasi Saat Ini -->
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="currentColor" stroke-width="2"/>
-                                <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                        </div>
-                        <h2 class="card-title">Lokasi Saat Ini</h2>
-                    </div>
-                    <p class="card-description">
-                        Lokasi Anda akan otomatis dikirim saat membuat laporan darurat. 
-                        Pastikan GPS aktif untuk akurasi yang lebih baik.
-                    </p>
-                    <div class="location-info">
-                        <div class="location-status">
-                            <span class="status-indicator"></span>
-                            <span>GPS Siap</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Card 4: Bantuan & Panduan -->
+                <!-- Card 3: Bantuan & Panduan -->
                 <div class="dashboard-card">
                     <div class="card-header">
                         <div class="card-icon">

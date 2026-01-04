@@ -16,15 +16,32 @@ require_once __DIR__ . '/../../database/connection.php';
 
 /**
  * Cek apakah admin sudah login
+ * Validasi ketat untuk memastikan hanya admin yang bisa mengakses
  * 
  * @return bool True jika admin sudah login
  */
 function isAdminLoggedIn() {
-    return isset($_SESSION['user_id']) && 
-           isset($_SESSION['user_role']) && 
-           in_array($_SESSION['user_role'], ['super_admin', 'admin', 'operator']) &&
-           isset($_SESSION['logged_in']) && 
-           $_SESSION['logged_in'] === true;
+    // Pastikan semua session variable admin ada dan valid
+    if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+        return false;
+    }
+    
+    if (!isset($_SESSION['user_role']) || empty($_SESSION['user_role'])) {
+        return false;
+    }
+    
+    // Hanya role admin yang diizinkan: super_admin, admin, operator
+    // Role 'user' TIDAK diizinkan mengakses halaman admin
+    $valid_admin_roles = ['super_admin', 'admin', 'operator'];
+    if (!in_array($_SESSION['user_role'], $valid_admin_roles)) {
+        return false;
+    }
+    
+    if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+        return false;
+    }
+    
+    return true;
 }
 
 /**
@@ -66,9 +83,17 @@ function getAdminInstansiId() {
 /**
  * Wajibkan admin untuk login
  * Redirect ke halaman login jika belum login
+ * Clear session jika role tidak valid untuk mencegah konflik
  */
 function requireAdminLogin() {
     if (!isAdminLoggedIn()) {
+        // Clear session jika role tidak valid untuk mencegah konflik
+        if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'user') {
+            // Jika user adalah user biasa, clear session dan redirect
+            session_destroy();
+            header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak. Halaman ini hanya untuk admin.'));
+            exit();
+        }
         header('Location: ../auth/login.php?error=' . urlencode('Anda harus login sebagai admin'));
         exit();
     }

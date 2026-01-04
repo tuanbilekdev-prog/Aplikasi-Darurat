@@ -14,31 +14,86 @@ if (!isLoggedIn()) {
     exit();
 }
 
-// Periksa peran - harus 'user'
-if (getUserRole() !== 'user') {
-    header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak'));
+// Periksa peran - harus 'user' (bukan admin)
+$user_role = getUserRole();
+if ($user_role !== 'user') {
+    // Jika user adalah admin, redirect ke admin dashboard
+    if (in_array($user_role, ['super_admin', 'admin', 'operator'])) {
+        header('Location: ../admin/dashboard.php?error=' . urlencode('Akses ditolak. Halaman ini hanya untuk user biasa.'));
+        exit();
+    }
+    // Jika role tidak valid, clear session dan redirect ke login
+    session_destroy();
+    header('Location: ../auth/login.php?error=' . urlencode('Akses ditolak. Silakan login ulang.'));
     exit();
 }
 
 $user_id = $_SESSION['user_id'];
 
+// Parameter filter dan pencarian
+$status_filter = $_GET['status'] ?? '';
+$category_filter = $_GET['category'] ?? '';
+$search = $_GET['search'] ?? '';
+
 try {
     $db = getDB();
     
-    // Ambil semua laporan pengguna
+    // Build query dengan filter
+    $where_conditions = ['user_id = :user_id'];
+    $params = ['user_id' => $user_id];
+    
+    if (!empty($status_filter)) {
+        $where_conditions[] = "status = :status";
+        $params['status'] = $status_filter;
+    }
+    
+    if (!empty($category_filter)) {
+        $where_conditions[] = "category = :category";
+        $params['category'] = $category_filter;
+    }
+    
+    if (!empty($search)) {
+        $where_conditions[] = "(title LIKE :search OR description LIKE :search OR location LIKE :search)";
+        $params['search'] = '%' . $search . '%';
+    }
+    
+    $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+    
+    // Ambil semua laporan pengguna dengan filter
     $stmt = $db->prepare("
-        SELECT id, title, category, status, description, location, created_at, updated_at
+        SELECT id, title, category, status, description, location, 
+               admin_notes, dispatched_to, dispatched_at, completed_at,
+               created_at, updated_at
         FROM reports 
-        WHERE user_id = :user_id 
+        {$where_clause}
         ORDER BY created_at DESC
     ");
-    $stmt->execute(['user_id' => $user_id]);
+    $stmt->execute($params);
     $reports = $stmt->fetchAll();
     
 } catch (PDOException $e) {
     error_log("History error: " . $e->getMessage());
     $reports = [];
 }
+
+// Kategori laporan
+$categories = [
+    'kecelakaan' => 'Kecelakaan',
+    'kebakaran' => 'Kebakaran',
+    'medis' => 'Darurat Medis',
+    'kejahatan' => 'Kejahatan',
+    'bencana' => 'Bencana Alam',
+    'lainnya' => 'Lainnya'
+];
+
+// Status laporan
+$statuses = [
+    'pending' => 'Menunggu',
+    'processing' => 'Diproses',
+    'dispatched' => 'Ditugaskan',
+    'completed' => 'Selesai',
+    'cancelled' => 'Dibatalkan'
+];
 
 ?>
 <!DOCTYPE html>
@@ -66,6 +121,69 @@ try {
                 <p class="page-subtitle">Semua laporan darurat yang telah Anda buat</p>
             </div>
 
+            <!-- Filter Section -->
+            <?php if (!empty($reports) || !empty($status_filter) || !empty($category_filter) || !empty($search)): ?>
+                <div class="filter-section" style="background: var(--white); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md); margin-bottom: 24px;">
+                    <form method="GET" class="filter-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
+                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 8px;">
+                            <label for="search" style="font-size: 0.875rem; font-weight: 600; color: var(--text);">Cari Laporan</label>
+                            <input 
+                                type="text" 
+                                id="search" 
+                                name="search" 
+                                class="form-input" 
+                                placeholder="Cari berdasarkan judul, deskripsi, atau lokasi..."
+                                value="<?php echo htmlspecialchars($search); ?>"
+                                style="padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9375rem; width: 100%;"
+                            >
+                        </div>
+                        
+                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 8px;">
+                            <label for="status" style="font-size: 0.875rem; font-weight: 600; color: var(--text);">Status</label>
+                            <select id="status" name="status" class="form-select" style="padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9375rem; width: 100%; background: var(--white);">
+                                <option value="">Semua Status</option>
+                                <?php foreach ($statuses as $key => $label): ?>
+                                    <option value="<?php echo $key; ?>" <?php echo $status_filter === $key ? 'selected' : ''; ?>>
+                                        <?php echo $label; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 8px;">
+                            <label for="category" style="font-size: 0.875rem; font-weight: 600; color: var(--text);">Kategori</label>
+                            <select id="category" name="category" class="form-select" style="padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9375rem; width: 100%; background: var(--white);">
+                                <option value="">Semua Kategori</option>
+                                <?php foreach ($categories as $key => $label): ?>
+                                    <option value="<?php echo $key; ?>" <?php echo $category_filter === $key ? 'selected' : ''; ?>>
+                                        <?php echo $label; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-actions" style="display: flex; gap: 12px;">
+                            <button type="submit" class="btn btn-primary" style="padding: 10px 20px; background: var(--primary); color: var(--white); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9375rem;">
+                                Filter
+                            </button>
+                            <a href="history.php" class="btn btn-secondary" style="padding: 10px 20px; background: var(--background); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-size: 0.9375rem;">
+                                Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            <?php endif; ?>
+
+            <!-- Results Info -->
+            <?php if (!empty($reports) || !empty($status_filter) || !empty($category_filter) || !empty($search)): ?>
+                <div style="margin-bottom: 16px; color: var(--text-light); font-size: 0.875rem;">
+                    Menampilkan <strong><?php echo count($reports); ?></strong> laporan
+                    <?php if (!empty($status_filter) || !empty($category_filter) || !empty($search)): ?>
+                        <a href="history.php" style="color: var(--accent); margin-left: 8px; text-decoration: none;">Tampilkan semua</a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <?php if (empty($reports)): ?>
                 <div class="empty-state-large">
                     <div class="empty-icon">
@@ -80,7 +198,7 @@ try {
             <?php else: ?>
                 <div class="reports-grid">
                     <?php foreach ($reports as $report): ?>
-                        <div class="report-card">
+                        <a href="report_detail.php?id=<?php echo $report['id']; ?>" class="report-card" style="text-decoration: none; color: inherit; display: block;">
                             <div class="report-card-header">
                                 <h3 class="report-card-title"><?php echo htmlspecialchars($report['title']); ?></h3>
                                 <span class="status-badge status-<?php echo strtolower($report['status']); ?>">
@@ -88,9 +206,11 @@ try {
                                     $status_text = [
                                         'pending' => 'Menunggu',
                                         'processing' => 'Diproses',
-                                        'completed' => 'Selesai'
+                                        'dispatched' => 'Ditugaskan',
+                                        'completed' => 'Selesai',
+                                        'cancelled' => 'Dibatalkan'
                                     ];
-                                    echo $status_text[$report['status']] ?? ucfirst($report['status']);
+                                    echo $status_text[$report['status']] ?? 'Tidak Diketahui';
                                     ?>
                                 </span>
                             </div>
@@ -100,7 +220,17 @@ try {
                                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
-                                        <?php echo htmlspecialchars($report['category'] ?? 'Lainnya'); ?>
+                                        <?php 
+                                        $category_text = [
+                                            'kecelakaan' => 'Kecelakaan',
+                                            'kebakaran' => 'Kebakaran',
+                                            'medis' => 'Darurat Medis',
+                                            'kejahatan' => 'Kejahatan',
+                                            'bencana' => 'Bencana Alam',
+                                            'lainnya' => 'Lainnya'
+                                        ];
+                                        echo htmlspecialchars($category_text[$report['category']] ?? 'Lainnya'); 
+                                        ?>
                                     </span>
                                     <span class="meta-item">
                                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,8 +250,19 @@ try {
                                         <span><?php echo htmlspecialchars($report['location']); ?></span>
                                     </div>
                                 <?php endif; ?>
+                                
+                                <?php if ($report['admin_notes'] || $report['dispatched_to']): ?>
+                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+                                        <span style="font-size: 0.8125rem; color: var(--accent); font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;">
+                                                <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            Ada respon dari admin
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                        </div>
+                        </a>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>

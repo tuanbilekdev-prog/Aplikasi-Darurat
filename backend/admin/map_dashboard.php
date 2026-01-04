@@ -77,11 +77,9 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
     <link rel="stylesheet" href="../../frontend/assets/css/admin-dashboard.css">
     <link rel="stylesheet" href="../../frontend/assets/css/maps.css">
     
-    <!-- Google Maps API -->
-    <!-- CATATAN: libraries=places DIPERLUKAN untuk fitur "Cari Instansi Darurat Terdekat" -->
-    <!-- Namun, Places API hanya dipanggil saat admin menekan tombol manual, bukan otomatis -->
-    <!-- Ini menghemat credit Places API secara signifikan -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=<?php echo defined('GOOGLE_MAPS_API_KEY') ? GOOGLE_MAPS_API_KEY : 'YOUR_GOOGLE_MAPS_API_KEY'; ?>&libraries=places&callback=initMap" async defer></script>
+    <!-- Leaflet.js - OpenStreetMap (GRATIS, tidak perlu API key) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <?php include '../partials/admin_navbar.php'; ?>
@@ -171,23 +169,13 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
                         </select>
                     </div>
 
-                    <!-- Tombol Cari Instansi Darurat Terdekat -->
-                    <!-- CATATAN: Tombol ini memicu request ke Places API -->
-                    <!-- Untuk menghemat credit, request hanya dilakukan saat tombol diklik -->
-                    <!-- Data hasil akan di-cache di database untuk penggunaan selanjutnya -->
-                    <div>
-                        <button type="button" id="findInstansiBtn" class="btn btn-primary" style="margin-left: 16px;">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 18px; height: 18px; margin-right: 6px;">
-                                <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="currentColor" stroke-width="2"/>
-                                <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                            Cari Instansi Darurat Terdekat
-                        </button>
-                    </div>
+                    <!-- CATATAN: Fitur "Cari Instansi Darurat Terdekat" DIHAPUS -->
+                    <!-- Fitur ini memerlukan Google Places API yang berbayar -->
+                    <!-- Untuk prototype, data instansi dapat ditambahkan manual ke database -->
                 </div>
             </div>
 
-            <!-- Google Maps Container -->
+            <!-- OpenStreetMap Container (Leaflet.js) -->
             <div id="map" class="admin-map-container"></div>
 
             <!-- Legend -->
@@ -225,46 +213,25 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
         // Data laporan dari PHP
         const reportsData = <?php echo $reports_json; ?>;
         
-        // Variabel global untuk Google Maps
+        // Variabel global untuk Leaflet Map
         let map;
         let markers = [];
-        let infoWindows = [];
-        let instansiMarkers = []; // Marker untuk instansi darurat
-        const defaultCenter = { lat: -6.2088, lng: 106.8456 }; // Jakarta, Indonesia
+        const defaultCenter = [ -6.2088, 106.8456 ]; // Jakarta, Indonesia [lat, lng]
         
-        // CATATAN OPTIMASI PLACES API:
-        // ============================================
-        // 1. Autocomplete DIHAPUS - Autocomplete dipanggil setiap kali user mengetik,
-        //    yang bisa menghabiskan ratusan credit per hari. DIHAPUS untuk menghemat.
-        // 
-        // 2. TOMBOL MANUAL - Places API hanya dipanggil saat admin menekan tombol
-        //    "Cari Instansi Darurat Terdekat". Ini mengurangi request dari ratusan/jam
-        //    menjadi hanya beberapa kali per hari.
-        // 
-        // 3. CACHE DATABASE - Sebelum memanggil Places API, sistem cek dulu data di database.
-        //    Jika sudah ada instansi dalam radius yang sama, gunakan data dari database.
-        //    Ini bisa menghemat 80-90% credit Places API.
-        // 
-        // 4. BATASI QUERY - Hanya cari: hospital, police, fire_station
-        //    Radius maksimal: 5000 meter
-        //    Ini mengurangi jumlah hasil dan credit yang digunakan.
-        // 
-        // RISIKO BIAYA PLACES API:
-        // - Autocomplete: $2.83 per 1000 requests
-        // - Nearby Search: $32 per 1000 requests
-        // - Tanpa optimasi ini, aplikasi bisa menghabiskan ratusan dollar per bulan
-        // - Dengan optimasi ini, biaya bisa turun menjadi < $10 per bulan
+        // CATATAN: Aplikasi menggunakan OpenStreetMap dengan Leaflet.js (GRATIS)
+        // Tidak memerlukan API key, cocok untuk prototype dan production
+        // Fitur "Cari Instansi Darurat Terdekat" dihapus karena memerlukan Google Places API yang berbayar
 
-        // Inisialisasi Google Maps
-        function initMap() {
+        // Inisialisasi Leaflet Map (OpenStreetMap - GRATIS, tidak perlu API key)
+        document.addEventListener('DOMContentLoaded', function() {
             // Buat peta
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: defaultCenter,
-                zoom: 11,
-                mapTypeControl: true,
-                streetViewControl: true,
-                fullscreenControl: true
-            });
+            map = L.map('map').setView(defaultCenter, 11);
+
+            // Tambahkan tile layer dari OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
 
             // Tampilkan semua marker
             displayMarkers(reportsData);
@@ -272,193 +239,8 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
             // Event listener untuk filter
             document.getElementById('filterStatus').addEventListener('change', filterMarkers);
             document.getElementById('filterCategory').addEventListener('change', filterMarkers);
-            
-            // Event listener untuk tombol "Cari Instansi Darurat Terdekat"
-            const findInstansiBtn = document.getElementById('findInstansiBtn');
-            if (findInstansiBtn) {
-                findInstansiBtn.addEventListener('click', function() {
-                    findNearbyInstansi();
-                });
-            }
-        }
+        });
         
-        // Fungsi untuk mencari instansi darurat terdekat
-        // CATATAN: Fungsi ini memicu request ke Places API
-        // Request hanya dilakukan saat admin menekan tombol manual
-        function findNearbyInstansi() {
-            const btn = document.getElementById('findInstansiBtn');
-            const center = map.getCenter();
-            
-            if (!center) {
-                alert('Peta belum siap. Silakan tunggu sebentar.');
-                return;
-            }
-            
-            // Disable tombol saat loading
-            btn.disabled = true;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<span>Mencari instansi...</span>';
-            
-            // Ambil koordinat center peta
-            const lat = center.lat();
-            const lng = center.lng();
-            
-            // Buat FormData untuk POST request
-            const formData = new FormData();
-            formData.append('latitude', lat);
-            formData.append('longitude', lng);
-            formData.append('jenis_instansi', 'all'); // Cari semua jenis: hospital, police, fire_station
-            
-            // Request ke endpoint PHP
-            fetch('api_find_instansi.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-                
-                if (data.success) {
-                    // Tampilkan marker instansi di peta
-                    displayInstansiMarkers(data.data, data.from_cache);
-                    
-                    // Tampilkan notifikasi
-                    const message = data.from_cache 
-                        ? `Ditemukan ${data.count} instansi dari cache database (tidak menggunakan credit Places API)`
-                        : `Ditemukan ${data.count} instansi dari Google Places API. ${data.saved_to_cache} instansi disimpan ke cache.`;
-                    
-                    alert(message);
-                } else {
-                    alert('Error: ' + (data.message || 'Tidak dapat mencari instansi'));
-                }
-            })
-            .catch(error => {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-                console.error('Error:', error);
-                alert('Terjadi kesalahan saat mencari instansi. Silakan coba lagi.');
-            });
-        }
-        
-        // Fungsi untuk menampilkan marker instansi di peta
-        function displayInstansiMarkers(instansiData, fromCache) {
-            // Hapus marker instansi lama
-            clearInstansiMarkers();
-            
-            if (!instansiData || instansiData.length === 0) {
-                return;
-            }
-            
-            // Icon berbeda untuk setiap jenis instansi
-            const iconMap = {
-                'hospital': {
-                    path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-                    scale: 6,
-                    fillColor: '#dc3545', // Merah untuk rumah sakit
-                    fillOpacity: 0.8,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 2
-                },
-                'police': {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 6,
-                    fillColor: '#007bff', // Biru untuk polisi
-                    fillOpacity: 0.8,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 2
-                },
-                'fire_station': {
-                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                    scale: 6,
-                    fillColor: '#ff6b00', // Orange untuk pemadam kebakaran
-                    fillOpacity: 0.8,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 2
-                }
-            };
-            
-            instansiData.forEach(function(instansi) {
-                const lat = parseFloat(instansi.latitude || instansi.lat);
-                const lng = parseFloat(instansi.longitude || instansi.lng);
-                
-                if (isNaN(lat) || isNaN(lng)) {
-                    return;
-                }
-                
-                // Tentukan jenis instansi dari places_type atau types
-                let jenis = 'hospital'; // default
-                if (instansi.places_type) {
-                    jenis = instansi.places_type;
-                } else if (instansi.types && Array.isArray(instansi.types)) {
-                    if (instansi.types.includes('police')) {
-                        jenis = 'police';
-                    } else if (instansi.types.includes('fire_station')) {
-                        jenis = 'fire_station';
-                    }
-                }
-                
-                const position = { lat: lat, lng: lng };
-                const icon = iconMap[jenis] || iconMap['hospital'];
-                
-                // Buat marker
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: map,
-                    icon: icon,
-                    title: instansi.nama || instansi.name || 'Instansi Darurat',
-                    animation: google.maps.Animation.DROP
-                });
-                
-                // Buat info window
-                const infoWindowContent = `
-                    <div class="info-window-content">
-                        <div class="info-window-title">${escapeHtml(instansi.nama || instansi.name || 'Instansi Darurat')}</div>
-                        <div class="info-window-detail">
-                            <strong>Jenis:</strong> ${escapeHtml(jenis === 'hospital' ? 'Rumah Sakit' : jenis === 'police' ? 'Kantor Polisi' : 'Pemadam Kebakaran')}
-                        </div>
-                        <div class="info-window-detail">
-                            <strong>Alamat:</strong> ${escapeHtml(instansi.alamat || instansi.alamat_lengkap || instansi.formatted_address || 'Tidak diketahui')}
-                        </div>
-                        ${instansi.rating ? `<div class="info-window-detail"><strong>Rating:</strong> ${instansi.rating}/5</div>` : ''}
-                        ${instansi.distance_meters ? `<div class="info-window-detail"><strong>Jarak:</strong> ${Math.round(instansi.distance_meters)} meter</div>` : ''}
-                        ${fromCache ? '<div class="info-window-time" style="color: #28a745; margin-top: 8px;"><small>✓ Data dari cache database</small></div>' : ''}
-                    </div>
-                `;
-                
-                const infoWindow = new google.maps.InfoWindow({
-                    content: infoWindowContent
-                });
-                
-                // Event listener untuk klik marker
-                marker.addListener('click', function() {
-                    // Tutup semua info window
-                    infoWindows.forEach(function(iw) {
-                        iw.close();
-                    });
-                    instansiMarkers.forEach(function(m) {
-                        if (m.infoWindow) {
-                            m.infoWindow.close();
-                        }
-                    });
-                    
-                    // Buka info window untuk marker ini
-                    infoWindow.open(map, marker);
-                });
-                
-                marker.infoWindow = infoWindow;
-                instansiMarkers.push(marker);
-            });
-        }
-        
-        // Fungsi untuk menghapus semua marker instansi
-        function clearInstansiMarkers() {
-            instansiMarkers.forEach(function(marker) {
-                marker.setMap(null);
-            });
-            instansiMarkers = [];
-        }
-
         // Fungsi untuk mendapatkan warna marker berdasarkan status
         function getMarkerColor(status) {
             const colors = {
@@ -471,19 +253,18 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
             return colors[status] || '#6c757d';
         }
 
-        // Fungsi untuk mendapatkan icon marker
-        function getMarkerIcon(status, urgent) {
+        // Fungsi untuk membuat custom icon Leaflet berdasarkan status
+        function createMarkerIcon(status, urgent) {
             const color = getMarkerColor(status);
             const iconSize = urgent ? 40 : 32;
             
-            return {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: iconSize / 2,
-                fillColor: color,
-                fillOpacity: 0.8,
-                strokeColor: '#ffffff',
-                strokeWeight: 2
-            };
+            // Buat custom icon menggunakan HTML
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${color}; width: ${iconSize}px; height: ${iconSize}px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [iconSize, iconSize],
+                iconAnchor: [iconSize / 2, iconSize / 2]
+            });
         }
 
         // Fungsi untuk menampilkan marker
@@ -496,7 +277,7 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
             }
 
             // Buat bounds untuk fit semua marker
-            const bounds = new google.maps.LatLngBounds();
+            const bounds = L.latLngBounds([]);
 
             reports.forEach(function(report) {
                 const lat = parseFloat(report.latitude);
@@ -506,37 +287,27 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
                     return;
                 }
 
-                const position = { lat: lat, lng: lng };
+                const position = [lat, lng];
+                bounds.extend(position);
 
-                // Buat marker
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: map,
-                    icon: getMarkerIcon(report.status, report.urgent == 1),
-                    title: report.title,
-                    animation: google.maps.Animation.DROP
-                });
+                // Buat marker dengan custom icon
+                const marker = L.marker(position, {
+                    icon: createMarkerIcon(report.status, report.urgent == 1),
+                    title: report.title
+                }).addTo(map);
 
-                // Buat info window
-                const infoWindowContent = createInfoWindowContent(report);
-                const infoWindow = new google.maps.InfoWindow({
-                    content: infoWindowContent
-                });
+                // Buat popup content
+                const popupContent = createInfoWindowContent(report);
+                
+                // Bind popup ke marker
+                marker.bindPopup(popupContent);
 
                 // Event listener untuk klik marker
-                marker.addListener('click', function() {
-                    // Tutup semua info window
-                    infoWindows.forEach(function(iw) {
-                        iw.close();
-                    });
-                    
-                    // Buka info window untuk marker ini
-                    infoWindow.open(map, marker);
+                marker.on('click', function() {
+                    // Leaflet popup sudah otomatis menutup popup lain saat membuka yang baru
                 });
 
                 markers.push(marker);
-                infoWindows.push(infoWindow);
-                bounds.extend(position);
             });
 
             // Fit bounds untuk menampilkan semua marker
@@ -579,24 +350,24 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
             });
 
             return `
-                <div class="info-window-content">
-                    <div class="info-window-title">${escapeHtml(report.title)}</div>
-                    <div class="info-window-detail">
+                <div class="info-window-content" style="min-width: 250px;">
+                    <div class="info-window-title" style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">${escapeHtml(report.title)}</div>
+                    <div class="info-window-detail" style="margin-bottom: 4px;">
                         <strong>Jenis Laporan:</strong> ${categoryText[report.category] || report.category}
                     </div>
-                    <div class="info-window-detail">
+                    <div class="info-window-detail" style="margin-bottom: 4px;">
                         <strong>Status:</strong> ${statusText[report.status] || report.status}
                     </div>
-                    <div class="info-window-detail">
+                    <div class="info-window-detail" style="margin-bottom: 4px;">
                         <strong>Pelapor:</strong> ${escapeHtml(report.user_fullname || report.username || 'Tidak diketahui')}
                     </div>
-                    <div class="info-window-detail">
+                    <div class="info-window-detail" style="margin-bottom: 4px;">
                         <strong>Lokasi:</strong> ${escapeHtml(report.location)}
                     </div>
-                    <div class="info-window-detail" style="margin-top: 8px;">
+                    <div class="info-window-detail" style="margin-top: 8px; margin-bottom: 8px;">
                         ${escapeHtml(report.description.substring(0, 100))}${report.description.length > 100 ? '...' : ''}
                     </div>
-                    <div class="info-window-time">
+                    <div class="info-window-time" style="font-size: 12px; color: #666; margin-bottom: 8px;">
                         <strong>Waktu Laporan:</strong> ${formattedDate}
                     </div>
                     <div style="margin-top: 12px;">
@@ -619,10 +390,9 @@ $reports_json = json_encode($reports, JSON_HEX_APOS | JSON_HEX_QUOT);
         // Fungsi untuk menghapus semua marker
         function clearMarkers() {
             markers.forEach(function(marker) {
-                marker.setMap(null);
+                map.removeLayer(marker);
             });
             markers = [];
-            infoWindows = [];
         }
 
         // Fungsi untuk filter marker

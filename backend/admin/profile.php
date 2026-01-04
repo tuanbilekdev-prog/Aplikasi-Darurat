@@ -131,7 +131,7 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
                                                 'inactive' => 'Tidak Aktif',
                                                 'suspended' => 'Ditangguhkan'
                                             ];
-                                            echo $statuses[$admin_data['status']] ?? ucfirst($admin_data['status']);
+                                            echo $statuses[$admin_data['status']] ?? 'Tidak Diketahui';
                                             ?>
                                         </span>
                                     </p>
