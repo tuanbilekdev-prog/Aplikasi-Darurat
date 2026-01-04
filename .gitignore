@@ -44,7 +44,13 @@ frontend/tmp/
 # FILE UPLOAD USER
 # ============================================
 # File yang di-upload oleh user (foto laporan, dll)
-uploads/
+# Ignore semua isi uploads/ kecuali .gitkeep files
+uploads/*
+!uploads/.gitkeep
+!uploads/reports/
+uploads/reports/*
+!uploads/reports/.gitkeep
+
 upload/
 media/
 files/
@@ -210,6 +216,17 @@ debug.log
 debug.txt
 *.debug
 php_error.log
+
+# ============================================
+# DOCKER & CONTAINER
+# ============================================
+docker-compose.override.yml
+.docker/
+docker-compose.local.yml
+docker-compose.prod.yml
+*.dockerfile
+# Docker volumes (jika ada)
+docker_volumes/
 
 # ============================================
 # CATATAN PENTING
