@@ -86,6 +86,35 @@ try {
     $stmt->execute(['user_id' => $user_id]);
     $active_reports = $stmt->fetchAll();
     
+    // Query statistik berdasarkan kategori
+    $category_stats = [];
+    $categories = ['kecelakaan', 'kebakaran', 'medis', 'kejahatan', 'bencana', 'lainnya'];
+    $category_labels = [
+        'kecelakaan' => 'Kecelakaan',
+        'kebakaran' => 'Kebakaran',
+        'medis' => 'Darurat Medis',
+        'kejahatan' => 'Kejahatan',
+        'bencana' => 'Bencana Alam',
+        'lainnya' => 'Lainnya'
+    ];
+    
+    foreach ($categories as $category) {
+        $stmt = $db->prepare("
+            SELECT COUNT(*) 
+            FROM reports 
+            WHERE user_id = :user_id AND category = :category
+        ");
+        $stmt->execute(['user_id' => $user_id, 'category' => $category]);
+        $count = (int)$stmt->fetchColumn();
+        if ($count > 0) {
+            $category_stats[] = [
+                'label' => $category_labels[$category],
+                'value' => $count,
+                'category' => $category
+            ];
+        }
+    }
+    
 } catch (PDOException $e) {
     error_log("Dashboard error: " . $e->getMessage());
     $recent_reports = [];
@@ -98,6 +127,7 @@ try {
         'cancelled' => 0
     ];
     $active_reports = [];
+    $category_stats = [];
 }
 
 ?>
@@ -295,6 +325,25 @@ try {
 
             <!-- Main Cards Grid -->
             <div class="cards-grid">
+                <!-- Card: Statistik Kategori -->
+                <?php if (!empty($category_stats)): ?>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h2 class="card-title">Kategori Laporan</h2>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <canvas id="categoryChart" style="max-height: 350px;"></canvas>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
                 <!-- Card 2: Riwayat Laporan -->
                 <div class="dashboard-card">
                     <div class="card-header">
@@ -375,8 +424,97 @@ try {
 
     <?php include '../partials/user_footer.php'; ?>
 
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <!-- JavaScript -->
     <script src="../../frontend/assets/js/user-dashboard.js"></script>
+    
+    <script>
+        // Data kategori dari PHP
+        const categoryData = <?php echo json_encode($category_stats); ?>;
+        
+        // Pie Chart untuk Kategori
+        <?php if (!empty($category_stats)): ?>
+        const categoryCtx = document.getElementById('categoryChart');
+        if (categoryCtx) {
+            // Warna untuk setiap kategori
+            const categoryColors = {
+                'Kecelakaan': '#E63946',
+                'Kebakaran': '#FF6B35',
+                'Darurat Medis': '#4DA3FF',
+                'Kejahatan': '#7209B7',
+                'Bencana Alam': '#F77F00',
+                'Lainnya': '#6C757D'
+            };
+            
+            const labels = categoryData.map(item => item.label);
+            const data = categoryData.map(item => item.value);
+            const backgroundColor = categoryData.map(item => {
+                // Gunakan warna yang sesuai dengan label
+                return categoryColors[item.label] || '#6C757D';
+            });
+            
+            new Chart(categoryCtx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                    weight: '500'
+                                },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    label += context.parsed + ' laporan (' + percentage + '%)';
+                                    return label;
+                                }
+                            },
+                            padding: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+        <?php endif; ?>
+    </script>
 </body>
 </html>
 
