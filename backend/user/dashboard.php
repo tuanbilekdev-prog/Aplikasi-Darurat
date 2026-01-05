@@ -5,7 +5,12 @@
  */
 
 session_start();
-require_once __DIR__ . '/../config.php';
+// Load Docker config jika di Docker environment, jika tidak load config.php biasa
+if (file_exists(__DIR__ . '/../config.docker.php') && getenv('DB_HOST') === 'db') {
+    require_once __DIR__ . '/../config.docker.php';
+} else {
+    require_once __DIR__ . '/../config.php';
+}
 require_once __DIR__ . '/../database/connection.php';
 
 // Periksa autentikasi
@@ -74,14 +79,13 @@ try {
         $report_stats[$status] = (int)$stmt->fetchColumn();
     }
     
-    // Ambil laporan aktif (pending/processing) untuk card
+    // Ambil laporan aktif (pending, processing, dispatched) untuk card - tanpa limit
     $stmt = $db->prepare("
         SELECT id, title, status, created_at, urgent
         FROM reports 
         WHERE user_id = :user_id 
-        AND (status = 'pending' OR status = 'processing')
+        AND status IN ('pending', 'processing', 'dispatched')
         ORDER BY urgent DESC, created_at DESC
-        LIMIT 3
     ");
     $stmt->execute(['user_id' => $user_id]);
     $active_reports = $stmt->fetchAll();

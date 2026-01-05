@@ -5,7 +5,12 @@
  */
 
 session_start();
-require_once __DIR__ . '/../config.php';
+// Load Docker config jika di Docker environment, jika tidak load config.php biasa
+if (file_exists(__DIR__ . '/../config.docker.php') && getenv('DB_HOST') === 'db') {
+    require_once __DIR__ . '/../config.docker.php';
+} else {
+    require_once __DIR__ . '/../config.php';
+}
 
 // Jika sudah masuk, arahkan ke dashboard
 if (isLoggedIn()) {

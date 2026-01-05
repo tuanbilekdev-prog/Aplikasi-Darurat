@@ -107,5 +107,3 @@ function getDB() {
 function getAdminDB() {
     return Database::getInstance()->getConnection();
 }
-
-?>

@@ -166,5 +166,3 @@ function generateFallbackSuggestion($report_category, $report_description) {
         'fallback' => true
     ];
 }
-
-?>

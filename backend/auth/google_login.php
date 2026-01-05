@@ -5,7 +5,12 @@
  */
 
 session_start();
-require_once __DIR__ . '/../config.php';
+// Load Docker config jika di Docker environment, jika tidak load config.php biasa
+if (file_exists(__DIR__ . '/../config.docker.php') && getenv('DB_HOST') === 'db') {
+    require_once __DIR__ . '/../config.docker.php';
+} else {
+    require_once __DIR__ . '/../config.php';
+}
 
 // Periksa apakah Google OAuth sudah dikonfigurasi
 if (!defined('GOOGLE_CLIENT_ID') || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID' || 
@@ -31,6 +36,4 @@ $auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
 // Arahkan ke Google
 header('Location: ' . $auth_url);
 exit();
-
-?>
 

@@ -4,16 +4,29 @@
  * Endpoint API untuk generate AI response suggestion
  */
 
+// Start output buffering untuk mencegah output sebelum JSON
+ob_start();
+
+// Disable error display untuk API (hanya log ke error_log)
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/middleware/auth_admin.php';
-require_once __DIR__ . '/../config.php';
+// Load Docker config jika di Docker environment, jika tidak load config.php biasa
+if (file_exists(__DIR__ . '/../config.docker.php') && getenv('DB_HOST') === 'db') {
+    require_once __DIR__ . '/../config.docker.php';
+} else {
+    require_once __DIR__ . '/../config.php';
+}
 require_once __DIR__ . '/../database/connection.php';
 require_once __DIR__ . '/../helpers/ai_helper.php';
 
 // Wajibkan login admin
 requireAdminLogin();
 
-// Set JSON header
-header('Content-Type: application/json');
+// Clear output buffer dan set JSON header
+ob_clean();
+header('Content-Type: application/json; charset=utf-8');
 
 // Cek method
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -37,6 +50,9 @@ if (!$report_id) {
     exit;
 }
 
+// Ambil status yang dipilih dari dropdown (jika ada), jika tidak gunakan status dari database
+$selected_status = isset($_POST['status']) ? $_POST['status'] : null;
+
 try {
     $db = getDB();
     
@@ -59,14 +75,17 @@ try {
         exit;
     }
     
-    // Generate AI suggestion
+    // Gunakan status yang dipilih dari dropdown jika ada, jika tidak gunakan status dari database
+    $status_to_use = $selected_status ? $selected_status : $report['status'];
+    
+    // Generate AI suggestion dengan status yang dipilih
     if (OPENAI_API_ENABLED) {
         $result = generateAISuggestion(
             $report['title'],
             $report['description'],
             $report['category'],
             $report['location'],
-            $report['status']
+            $status_to_use
         );
     } else {
         // Fallback ke rule-based suggestion
@@ -99,4 +118,5 @@ try {
     ]);
 }
 
-?>
+// End output buffering
+ob_end_flush();

@@ -33,5 +33,3 @@ session_destroy();
 header('Location: login.php?success=' . urlencode('Anda telah berhasil keluar'));
 exit();
 
-?>
-

@@ -5,7 +5,12 @@
  */
 
 // Backend: Muat konfigurasi
-require_once __DIR__ . '/../backend/config.php';
+// Load Docker config jika di Docker environment, jika tidak load config.php biasa
+if (file_exists(__DIR__ . '/../backend/config.docker.php') && getenv('DB_HOST') === 'db') {
+    require_once __DIR__ . '/../backend/config.docker.php';
+} else {
+    require_once __DIR__ . '/../backend/config.php';
+}
 
 // Periksa apakah pengguna sudah masuk (untuk penggunaan di masa depan)
 $is_logged_in = isLoggedIn();

@@ -399,15 +399,36 @@ $statuses = [
                     generateBtn.style.opacity = '0.6';
                     generateBtn.style.cursor = 'not-allowed';
                     
+                    // Ambil status yang dipilih dari dropdown sebelum generate
+                    const statusSelect = document.getElementById('status');
+                    const selectedStatus = statusSelect ? statusSelect.value : null;
+                    
                     // Make API call
                     const formData = new FormData();
                     formData.append('report_id', reportId);
+                    if (selectedStatus) {
+                        formData.append('status', selectedStatus);
+                    }
                     
                     fetch('api_generate_suggestion.php', {
                         method: 'POST',
                         body: formData
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        // Check if response is OK
+                        if (!response.ok) {
+                            throw new Error('HTTP error! status: ' + response.status);
+                        }
+                        // Check content type
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            return response.text().then(text => {
+                                console.error('Non-JSON response:', text);
+                                throw new Error('Server mengembalikan response non-JSON. Pastikan tidak ada error PHP.');
+                            });
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         loadingDiv.style.display = 'none';
                         generateBtn.disabled = false;

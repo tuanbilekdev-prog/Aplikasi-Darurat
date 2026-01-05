@@ -5,8 +5,13 @@
  */
 
 session_start();
+// Load Docker config jika di Docker environment, jika tidak load config.php biasa
+if (file_exists(__DIR__ . '/../config.docker.php') && getenv('DB_HOST') === 'db') {
+    require_once __DIR__ . '/../config.docker.php';
+} else {
+    require_once __DIR__ . '/../config.php';
+}
 require_once __DIR__ . '/../database/connection.php';
-require_once __DIR__ . '/../config.php';
 
 // Periksa apakah request adalah POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -198,6 +203,4 @@ try {
     }
     exit();
 }
-
-?>
 

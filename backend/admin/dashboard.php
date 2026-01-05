@@ -129,13 +129,13 @@ try {
         }
     }
     
-    // Query laporan terbaru (yang belum selesai) - tampilkan semua laporan aktif (belum completed/cancelled)
+    // Query laporan aktif - hanya menampilkan status: pending, processing, dispatched (tanpa limit)
     $stmt = $db->prepare("
         SELECT r.*, u.username, u.fullname as user_fullname, u.email as user_email
         FROM reports r
         LEFT JOIN users u ON r.user_id = u.id
-        WHERE r.status != 'completed' AND r.status != 'cancelled'
-        ORDER BY r.id DESC
+        WHERE r.status IN ('pending', 'processing', 'dispatched')
+        ORDER BY r.created_at DESC
     ");
     $stmt->execute();
     $recent_reports = $stmt->fetchAll();
@@ -445,10 +445,10 @@ try {
             </div>
             <?php endif; ?>
 
-            <!-- Laporan Terbaru -->
+            <!-- Laporan Aktif -->
             <div class="dashboard-section">
                 <div class="section-header">
-                    <h2 class="section-title">Laporan Terbaru</h2>
+                    <h2 class="section-title">Laporan Aktif</h2>
                     <a href="laporan_list.php" class="section-link">Lihat Semua →</a>
                 </div>
                 

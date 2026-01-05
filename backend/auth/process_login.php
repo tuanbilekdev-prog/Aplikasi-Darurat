@@ -5,8 +5,13 @@
  */
 
 session_start();
+// Load Docker config jika di Docker environment, jika tidak load config.php biasa
+if (file_exists(__DIR__ . '/../config.docker.php') && getenv('DB_HOST') === 'db') {
+    require_once __DIR__ . '/../config.docker.php';
+} else {
+    require_once __DIR__ . '/../config.php';
+}
 require_once __DIR__ . '/../database/connection.php';
-require_once __DIR__ . '/../config.php';
 
 // Periksa apakah request adalah POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -88,20 +93,27 @@ try {
         exit();
     }
     
-    // Debug: Catat upaya verifikasi password (hapus di production)
-    if (ini_get('display_errors')) {
-        error_log("Login attempt - User: " . $username . ", Password length: " . strlen($password));
-        error_log("Stored hash: " . substr($user['password'], 0, 20) . "...");
+    // Debug: Catat upaya verifikasi password
+    error_log("=== LOGIN DEBUG ===");
+    error_log("Username/Email: " . $username);
+    error_log("User found: " . ($user ? "YES" : "NO"));
+    if ($user) {
+        error_log("User ID: " . $user['id']);
+        error_log("User Type: " . $user_type);
+        error_log("User Status: " . $user['status']);
+        error_log("Password field empty: " . (empty($user['password']) ? "YES" : "NO"));
+        error_log("Stored hash preview: " . substr($user['password'], 0, 30) . "...");
+        error_log("Input password length: " . strlen($password));
     }
     
     if (!password_verify($password, $user['password'])) {
-        // Info debug tambahan
-        if (ini_get('display_errors')) {
-            error_log("Password verification FAILED for user: " . $username);
-        }
+        error_log("Password verification FAILED for user: " . $username);
+        error_log("Password verify result: " . (password_verify($password, $user['password']) ? "TRUE" : "FALSE"));
         header('Location: login.php?error=' . urlencode('Username/email atau password salah'));
         exit();
     }
+    
+    error_log("Password verification SUCCESS for user: " . $username);
     
     // Setel sesi
     $_SESSION['user_id'] = $user['id'];
@@ -159,6 +171,4 @@ try {
     header('Location: login.php?error=' . urlencode('Terjadi kesalahan sistem. Silakan coba lagi.'));
     exit();
 }
-
-?>
 
