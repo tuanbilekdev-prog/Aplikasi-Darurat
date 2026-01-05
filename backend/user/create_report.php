@@ -117,7 +117,33 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
                     </div>
 
                     <div class="form-group">
-                        <label for="description" class="form-label">Deskripsi <span class="required">*</span></label>
+                        <label for="photos" class="form-label">Foto Kejadian (Opsional)</label>
+                        <input 
+                            type="file" 
+                            id="photos" 
+                            name="photos[]" 
+                            class="form-input" 
+                            accept="image/jpeg,image/png,image/jpg,image/gif"
+                            multiple
+                        >
+                        <small style="color: var(--text-light); font-size: 0.875rem; display: block; margin-top: 8px;">
+                            Anda dapat mengupload beberapa foto (maksimal 5 foto, ukuran maksimal 5MB per foto). Format: JPG, PNG, GIF
+                        </small>
+                        <div id="photoPreview" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <label for="description" class="form-label">Deskripsi <span class="required">*</span></label>
+                            <button type="button" id="generateAIDescriptionBtn" class="btn-ai-suggestion" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(77, 163, 255, 0.1); color: #4DA3FF; border: 1px solid rgba(77, 163, 255, 0.3); border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;">
+                                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Generate AI Description
+                            </button>
+                        </div>
                         <textarea 
                             id="description" 
                             name="description" 
@@ -128,6 +154,13 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
                             maxlength="1000"
                         ></textarea>
                         <div class="char-count"><span id="charCount">0</span>/1000 karakter</div>
+                        <div id="aiDescriptionLoading" style="display: none; margin-top: 8px; padding: 12px; background: rgba(77, 163, 255, 0.05); border-radius: 6px; font-size: 0.875rem; color: #4DA3FF;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="spinner" style="width: 16px; height: 16px; border: 2px solid rgba(77, 163, 255, 0.3); border-top-color: #4DA3FF; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                                <span>Mengenerate deskripsi...</span>
+                            </div>
+                        </div>
+                        <div id="aiDescriptionError" style="display: none; margin-top: 8px; padding: 12px; background: rgba(220, 53, 69, 0.1); border-radius: 6px; font-size: 0.875rem; color: #dc3545; border-left: 3px solid #dc3545;"></div>
                     </div>
 
                     <div class="form-group">
@@ -167,22 +200,6 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
                             <input type="checkbox" name="urgent" id="urgent" value="1">
                             <span>Laporan Darurat (Prioritas Tinggi)</span>
                         </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="photos" class="form-label">Foto Kejadian (Opsional)</label>
-                        <input 
-                            type="file" 
-                            id="photos" 
-                            name="photos[]" 
-                            class="form-input" 
-                            accept="image/jpeg,image/png,image/jpg,image/gif"
-                            multiple
-                        >
-                        <small style="color: var(--text-light); font-size: 0.875rem; display: block; margin-top: 8px;">
-                            Anda dapat mengupload beberapa foto (maksimal 5 foto, ukuran maksimal 5MB per foto). Format: JPG, PNG, GIF
-                        </small>
-                        <div id="photoPreview" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;"></div>
                     </div>
 
                     <div class="form-actions">
@@ -294,6 +311,101 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
         if (description && charCount) {
             description.addEventListener('input', function() {
                 charCount.textContent = this.value.length;
+            });
+        }
+
+        // Generate AI Description
+        const generateAIDescriptionBtn = document.getElementById('generateAIDescriptionBtn');
+        const aiDescriptionLoading = document.getElementById('aiDescriptionLoading');
+        const aiDescriptionError = document.getElementById('aiDescriptionError');
+        
+        if (generateAIDescriptionBtn && description) {
+            generateAIDescriptionBtn.addEventListener('click', function() {
+                const titleInput = document.getElementById('title');
+                const categorySelect = document.getElementById('category');
+                const photoInput = document.getElementById('photos');
+                
+                // Validasi minimal
+                if (!titleInput || !titleInput.value.trim()) {
+                    alert('Silakan isi judul laporan terlebih dahulu');
+                    titleInput.focus();
+                    return;
+                }
+                
+                if (!categorySelect || !categorySelect.value) {
+                    alert('Silakan pilih kategori terlebih dahulu');
+                    categorySelect.focus();
+                    return;
+                }
+                
+                // Show loading
+                aiDescriptionLoading.style.display = 'block';
+                aiDescriptionError.style.display = 'none';
+                generateAIDescriptionBtn.disabled = true;
+                generateAIDescriptionBtn.style.opacity = '0.6';
+                generateAIDescriptionBtn.style.cursor = 'not-allowed';
+                
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('title', titleInput.value.trim());
+                formData.append('category', categorySelect.value);
+                
+                // Check if photos exist
+                if (photoInput && photoInput.files && photoInput.files.length > 0) {
+                    // Use first photo for AI analysis
+                    formData.append('photo', photoInput.files[0]);
+                }
+                
+                // Make API call
+                fetch('api_generate_description.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP error! status: ' + response.status);
+                    }
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        return response.text().then(text => {
+                            console.error('Non-JSON response:', text);
+                            throw new Error('Server mengembalikan response non-JSON.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    aiDescriptionLoading.style.display = 'none';
+                    generateAIDescriptionBtn.disabled = false;
+                    generateAIDescriptionBtn.style.opacity = '1';
+                    generateAIDescriptionBtn.style.cursor = 'pointer';
+                    
+                    if (data.success) {
+                        // Set description to textarea
+                        description.value = data.description;
+                        charCount.textContent = data.description.length;
+                        description.focus();
+                        
+                        // Show success message briefly
+                        generateAIDescriptionBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Description Generated';
+                        
+                        setTimeout(() => {
+                            generateAIDescriptionBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Generate AI Description';
+                        }, 3000);
+                    } else {
+                        aiDescriptionError.textContent = data.error || 'Gagal generate deskripsi';
+                        aiDescriptionError.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    aiDescriptionLoading.style.display = 'none';
+                    generateAIDescriptionBtn.disabled = false;
+                    generateAIDescriptionBtn.style.opacity = '1';
+                    generateAIDescriptionBtn.style.cursor = 'pointer';
+                    aiDescriptionError.textContent = 'Terjadi kesalahan: ' + error.message;
+                    aiDescriptionError.style.display = 'block';
+                    console.error('Error:', error);
+                });
             });
         }
 
@@ -525,6 +637,16 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
             }
         });
     </script>
+    
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .btn-ai-suggestion:hover:not(:disabled) {
+            background: rgba(77, 163, 255, 0.2);
+            border-color: rgba(77, 163, 255, 0.5);
+        }
+    </style>
 </body>
 </html>
 
