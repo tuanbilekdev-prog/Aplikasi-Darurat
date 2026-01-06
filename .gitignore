@@ -232,6 +232,13 @@ docker-compose.prod.yml
 docker_volumes/
 
 # ============================================
+# CLOUDFLARE TUNNEL
+# ============================================
+# Cloudflare Tunnel credentials (sensitif - ada di user home directory)
+# Path: C:\Users\[username]\.cloudflared\
+# File credentials tidak perlu di-commit karena spesifik per user
+
+# ============================================
 # CATATAN PENTING
 # ============================================
 # 

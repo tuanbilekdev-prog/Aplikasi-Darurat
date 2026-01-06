@@ -8,6 +8,7 @@ services:
     ports:
       - "8080:80"
     volumes:
+      - ./index.php:/var/www/html/index.php
       - ./backend:/var/www/html/backend
       - ./frontend:/var/www/html/frontend
       - ./uploads:/var/www/html/uploads

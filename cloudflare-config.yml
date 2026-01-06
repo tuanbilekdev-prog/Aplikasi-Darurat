@@ -1,0 +1,17 @@
+tunnel: 02f32673-8545-4375-aae2-989ebc7f6899
+credentials-file: C:\Users\lenovo\.cloudflared\02f32673-8545-4375-aae2-989ebc7f6899.json
+
+ingress:
+  # Main application - projectone.space
+  - hostname: projectone.space
+    service: http://localhost:8080
+  - hostname: www.projectone.space
+    service: http://localhost:8080
+  
+  # phpMyAdmin - subdomain terpisah (berjalan di port 8081)
+  - hostname: phpmyadmin.projectone.space
+    service: http://localhost:8081
+  
+  # Catch-all untuk request yang tidak match
+  - service: http_status:404
+
